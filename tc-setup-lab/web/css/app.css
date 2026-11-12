@@ -44,6 +44,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body {
   background: var(--bg);
@@ -334,6 +335,7 @@ textarea {
 }
 .drawing.pinned .dg { max-height: 31vh; }
 .drawing.pinned #dg.multi .dg { max-height: 20vh; }
+.drawing.pinned #dg.multi3 .dg { max-height: 14vh; }
 .drawing.pinned .cap { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 6px; }
 .drawing.pinned .cap span + span::before { content: " · "; }
 .drawing.pinned .scrub { padding-bottom: 8px; }
@@ -417,3 +419,19 @@ textarea {
   position: absolute; left: 0; right: 0; top: 50%; transform: translateY(18px); text-align: center;
   font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--muted); pointer-events: none;
 }
+
+/* ---------- data source badges and car switching ---------- */
+.src {
+  display: inline-block; margin-left: 7px; padding: 0 5px; border-radius: 4px; vertical-align: 2px;
+  font-family: var(--font-display); font-weight: 700; font-size: 10.5px; letter-spacing: 0.08em; line-height: 16px;
+  border: 1px solid currentColor;
+}
+.src-kit { color: var(--accent); }
+.src-cal { color: var(--blue); }
+.src-sp1 { color: var(--rod); }
+.src-est { color: var(--faint); }
+.help.srcnote { font-size: 12.5px; color: var(--faint); margin-top: -2px; }
+.notice.ok { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); color: var(--ink); }
+.linkbtn { border: 0; background: none; color: var(--accent); font-weight: 600; text-decoration: underline; padding: 0 2px; }
+.sheet td.srccell { width: 1%; padding-left: 0; padding-right: 0; }
+.sheet td.wrap { white-space: normal; text-align: right; }

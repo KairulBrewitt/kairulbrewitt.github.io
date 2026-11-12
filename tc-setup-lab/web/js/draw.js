@@ -110,7 +110,7 @@
     s += L(0, -gz, 0, -70, 'faint dash');
     const ty = Cn.shockTop[1] + 8;
     s += PG([P2([-40, 2.25]), P2([-ty, 64]), P2([ty, 64]), P2([40, 2.25])], 'tower');
-    const ch = P.HW.chassis;
+    const ch = model.hw.chassis;
     s += PG([P2([-ch.halfWidth, 0]), P2([ch.halfWidth, 0]), P2([ch.halfWidth, ch.thick]), P2([-ch.halfWidth, ch.thick])], 'chassis');
 
     let wheels = '', construction = '', parts = '', labels = '';
@@ -134,9 +134,9 @@
       parts += L(Pin[0], Pin[1], O[0], O[1], 'arm');
       parts += L(U[0], U[1], B[0], B[1], 'link');
       const Wi = q(add3(st.W, mul3(st.s, -9)));
-      if (Cn.isF) {
+      if (Cn.steered) {
         const kp = q(st.kp), kt = q(st.kpTop);
-        parts += PG([O, kp, kt, B], 'hub');
+        parts += Cn.Hw.upperOnKingpin ? PG([O, B, Wi], 'hub') : PG([O, kp, kt, B], 'hub');
         parts += L(kp[0], kp[1], kt[0], kt[1], 'ink');
         parts += L(Wi[0], Wi[1], W[0], W[1], 'ink');
         if (o.rod) {
@@ -155,10 +155,10 @@
         const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
         const mU = mid(U, B), mA = mid(Pin, O);
         if (!o.emphShock) {
-          labels += T(mU[0], mU[1] - 4 * k, 'camber link', 9.5 * k, 't-arm', 'middle');
+          labels += T(mU[0], mU[1] - 4 * k, Cn.Hw.upperOnKingpin ? 'upper arm' : 'camber link', 9.5 * k, 't-arm', 'middle');
           labels += T(mA[0], mA[1] + 10 * k, 'lower arm', 9.5 * k, 't-arm', 'middle');
         }
-        if (o.rod) { const pb = q(Cn.plateBall(0)), ball = q(st.ball); const mr = mid(pb, ball); labels += T(mr[0], mr[1] + 10 * k, 'steering link', 9.5 * k, 't-arm', 'middle'); }
+        if (o.rod) { const pb = q(Cn.plateBall(0)), ball = q(st.ball); const mr = mid(pb, ball); labels += T(mr[0], mr[1] + 10 * k, Cn.isF ? 'steering link' : 'toe link', 9.5 * k, 't-arm', 'middle'); }
         if (o.emphShock) { const lo = q(st.shockLow), hi = q(Cn.shockTop); labels += T((lo[0] + hi[0]) / 2 + 9 * k, (lo[1] + hi[1]) / 2 + 3 * k, 'shock', 10 * k, 't-blue'); }
       }
     }
@@ -222,7 +222,7 @@
     s += PL(b.window.concat([b.window[0]]).map(([x, z]) => [x, Y(x, z)]), 'ink-thin');
     s += L(b.wing[0][0], Y(...b.wing[0]), b.wing[1][0], Y(...b.wing[1]), 'ink');
     for (const st of b.stands) s += L(st[0][0], Y(...st[0]), st[1][0], Y(...st[1]), 'ink-thin');
-    const ch = P.HW.chassis;
+    const ch = model.hw.chassis;
     const zc = (x) => hR + (hF - hR) * (x + WB) / WB;
     const xa = ch.front, xb = -WB - ch.rear;
     s += PG([[xa, Y(xa, zc(xa))], [xb, Y(xb, zc(xb))], [xb, Y(xb, zc(xb) + ch.thick)], [xa, Y(xa, zc(xa) + ch.thick)]], 'chassis');
@@ -338,7 +338,7 @@
     const vb = [-reach, -96, reach + 136, WB + 140];
     const k = vb[2] / o.px;
     let s = grid(vb, 50);
-    const ch = P.HW.chassis;
+    const ch = model.hw.chassis;
     s += PG([toS(ch.front, ch.halfWidth), toS(ch.front, -ch.halfWidth), toS(-WB - ch.rear, -ch.halfWidth), toS(-WB - ch.rear, ch.halfWidth)], 'chassis');
     s += segClipped(toS(-WB, -yWr - 20), toS(-WB, reach), vb, 'faint dash');
     let lab = '';
@@ -362,14 +362,14 @@
     return svg(vb, s + lab, 'Top view of the car turning left');
   }
   function linkageView(model, input, o) {
-    const F = model.front, R = F.Rt, w = model.setup.car.tireWidth, H = P.HW.front;
+    const F = model.front, R = F.Rt, w = model.setup.car.tireWidth, H = model.hw.front;
     const { p, r } = steerState(model, input);
     const toS = (x, y) => [-y, -x];
     const mirP = (q) => [q[0], -q[1], q[2]];
     const vb = [-114, -50, 228, 100];
     const k = vb[2] / o.px;
     let s = grid(vb, 10);
-    const ch = P.HW.chassis;
+    const ch = model.hw.chassis;
     s += PG([toS(ch.front, ch.halfWidth), toS(ch.front, -ch.halfWidth), toS(-50, -ch.halfWidth), toS(-50, ch.halfWidth)], 'chassis');
     const sides = [[r.sL, (q) => q, F.plateBall(p), r.sL.heading], [r.sR, mirP, mirP(F.plateBall(-p)), -r.sR.heading]];
     const pbL = sides[0][2], pbR = sides[1][2], pb0 = F.plateBall(0);
@@ -405,7 +405,7 @@
     const vb = [-WB - 64, -122, WB + 128, 244];
     const k = vb[2] / o.px;
     let s = grid(vb, 20);
-    const ch = P.HW.chassis;
+    const ch = model.hw.chassis;
     s += PG([toS(ch.front, ch.halfWidth), toS(ch.front, -ch.halfWidth), toS(-WB - ch.rear, -ch.halfWidth), toS(-WB - ch.rear, ch.halfWidth)], 'chassis');
     s += L(vb[0], 0, vb[0] + vb[2], 0, 'faint dash');
     let lab = '';
@@ -441,7 +441,7 @@
     s += L(0, 0, 0, -132, 'faint dash');
     const shell = [[-95, 8], [-95, 50], [-86, 64], [-60, 104], [60, 104], [86, 64], [95, 50], [95, 8]];
     s += PL(shell.map(([y, z]) => S(tf(y, z))), 'faint dash');
-    const ch = P.HW.chassis;
+    const ch = model.hw.chassis;
     s += PG([S(tf(-ch.halfWidth, 0)), S(tf(ch.halfWidth, 0)), S(tf(ch.halfWidth, ch.thick)), S(tf(-ch.halfWidth, ch.thick))], 'chassis');
     let lab = '', parts = '';
     const maxN = Math.max(cL.grams, cR.grams, 1), sc = 44 / Math.max(700, maxN);

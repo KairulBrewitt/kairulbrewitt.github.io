@@ -6,7 +6,7 @@
 (function () {
   'use strict';
   const P = window.TCPhysics, D = window.TCDraw, D3 = window.TCDraw3D;
-  const KEY = 'tc-setup-lab:v1';
+  const KEY = 'tc-setup-lab:v2';
   const $ = (sel, el) => (el || document).querySelector(sel);
   const fmt = D.fmt, fmtS = D.fmtS;
   const G = P.G;
@@ -50,6 +50,10 @@
     tireDia: { label: 'Tyre diameter', help: 'Shrinks as tyres wear. Ride height is held, so the arm angles change.' },
     tireWidth: { label: 'Tyre width', help: 'Sets the overall width with the wheel spacers.' },
     tireRate: { label: 'Tyre vertical stiffness', help: 'Rubber and insert together. Works in series with the springs.' },
+    model: {
+      label: 'Car',
+      options: { sp2: ['RC Maker SP2', 'kit setup'], generic: ['Generic TC', 'C-hub baseline'] },
+    },
     frontDiff: {
       label: 'Front differential',
       options: { spool: ['Spool', 'brakes the front'], oneway: ['One-way', 'front freewheels'], diff: ['Gear diff', 'brakes the front'] },
@@ -57,10 +61,30 @@
   };
   const SHARED = new Set(['camber', 'rideHeight', 'linkInZ', 'linkInY', 'linkOutSpacer', 'pivotZ', 'droop', 'wheelSpacer', 'spring', 'shockArm', 'shockTowerY', 'swayBar']);
 
+  // The SP2 has upper arms on balls, a steering rack, toe links and pushrod shocks.
+  const META_SP2 = {
+    linkInZ: { label: 'Upper arm, inner ball height', help: 'Inner ball on the upper bulkhead, height above the chassis.' },
+    linkInY: { label: 'Upper arm, inner ball position', help: 'Inner ball distance from the centreline. Further out = shorter arm.' },
+    linkOutSpacer: { label: 'Upper ball spacer on hub', help: 'Shims under the upper ball on the hub.' },
+    pivotZ: { label: 'Lower arm pivot height', help: 'Arm pivot above the chassis, set with the shims under the arm mounts.' },
+    'front.caster': { label: 'Front caster', help: 'Set by the upper bulkhead inserts.' },
+    'rear.caster': { label: 'Rear caster', help: 'Set by the rear upper bulkhead inserts. Negative = top of the hub forward.', signed: true },
+    'rear.toe': { label: 'Rear toe-in', help: 'Set with the rear toe-link turnbuckles.' },
+    'front.ballSpacer': { label: 'Steering-arm ball spacer', help: 'Shims under the ball on the front steering arm. The main bump-steer adjuster.' },
+    'rear.ballSpacer': { label: 'Toe-link ball spacer', help: 'Shims under the ball on the rear steering arm. Sets rear toe change with travel.' },
+    plateSpacer: { label: 'Steering-rack ball spacer', help: 'Shims under the inner steering-link balls on the rack.' },
+    plateY: { label: 'Rack ball, lateral', help: 'Inner steering-link ball, distance from the centreline.' },
+    plateDX: { label: 'Rack ball, fore/aft', help: 'Moves the inner ball forward (+) or back (−).', signed: true },
+    ackInset: { label: 'Steering-arm ball, inboard offset', help: 'Further inboard = more Ackermann.' },
+    shockArm: { label: 'Pushrod mount on arm', help: 'Lower pushrod ball, distance from the arm pivot. Pushrod and rocker are modelled as an equivalent strut.' },
+    shockTowerY: { label: 'Shock line, inner mount', help: 'Inner end of the equivalent strut, distance from the centreline.' },
+    kpi: { label: 'Kingpin inclination', help: 'Front-view lean of the line through the two hub balls.' },
+  };
   function metaFor(path, prefixAxle) {
     const [axle, key] = path.split('.');
     let m = META[key] || { label: key, help: '' };
     if (m.front || m.rear) m = m[axle];
+    if (state.setup.car.model === 'sp2') m = Object.assign({}, m, META_SP2[path] || META_SP2[key] || {});
     let label = m.label;
     if (prefixAxle && SHARED.has(key) && (axle === 'front' || axle === 'rear')) label = AXN[axle] + ' ' + label.charAt(0).toLowerCase() + label.slice(1);
     return Object.assign({}, m, { label });
@@ -73,16 +97,16 @@
   const TABS = [
     { id: 'camber', name: 'Camber', title: 'Camber & roll centre', axle: true,
       controls: (a) => [a + '.camber', a + '.rideHeight', a + '.linkInZ', a + '.linkInY', a + '.linkOutSpacer', a + '.pivotZ'] },
-    { id: 'caster', name: 'Caster', title: 'Caster', controls: () => ['front.caster', 'front.kickup', 'front.kpi', 'front.lock'] },
+    { id: 'caster', name: 'Caster', title: 'Caster', controls: () => ['front.caster', 'rear.caster', 'front.kickup', 'front.kpi', 'front.lock'] },
     { id: 'ackermann', name: 'Ackermann', title: 'Ackermann', controls: () => ['front.lock', 'front.ackInset', 'front.plateDX', 'front.armLength', 'front.plateY'] },
-    { id: 'toe', name: 'Toe', title: 'Toe & bump steer', controls: () => ['front.toe', 'rear.toe', 'front.ballSpacer', 'front.plateSpacer'] },
+    { id: 'toe', name: 'Toe', title: 'Toe & bump steer', controls: () => ['front.toe', 'rear.toe', 'front.ballSpacer', 'front.plateSpacer', 'rear.ballSpacer'] },
     { id: 'antisquat', name: 'Anti-squat', title: 'Anti-squat', controls: () => ['rear.antiSquat', 'front.kickup', 'car.cgHeight', 'car.frontDiff'] },
     { id: 'droop', name: 'Droop', title: 'Droop & roll', axle: true, axleIsView: true,
       controls: () => ['front.droop', 'rear.droop', 'front.rideHeight', 'rear.rideHeight'] },
     { id: 'springs', name: 'Springs', title: 'Springs & bars', axle: true,
       controls: (a) => [a + '.spring', a + '.shockArm', a + '.shockTowerY', a + '.swayBar'] },
     { id: 'car', name: 'Car', title: 'Car & tyres',
-      controls: () => ['car.mass', 'car.frontPct', 'car.cgHeight', 'car.wheelbase', 'car.tireDia', 'car.tireWidth', 'car.tireRate', 'front.wheelSpacer', 'rear.wheelSpacer', 'car.frontDiff'] },
+      controls: () => ['car.model', 'car.mass', 'car.frontPct', 'car.cgHeight', 'car.wheelbase', 'car.tireDia', 'car.tireWidth', 'car.tireRate', 'front.wheelSpacer', 'rear.wheelSpacer', 'car.frontDiff'] },
     { id: 'sheet', name: 'Setup sheet', title: 'Setup sheet', controls: () => [] },
   ];
   const tabById = (id) => TABS.find((t) => t.id === id) || TABS[0];
@@ -197,6 +221,8 @@
   function buildTab() {
     const t = tabById(state.tab);
     el.title.textContent = t.title;
+    const eb = $('#car-name');
+    if (eb) eb.textContent = P.CARS[state.setup.car.model].name;
     document.title = 'TC Setup Lab';
     state.cam = Object.assign({}, CAM_DEFAULT[t.id] || D3.VIEWS.iso);
     const parts = [];
@@ -257,7 +283,7 @@
     if (ex) ex.addEventListener('click', () => { state.exaggerate = !state.exaggerate; refreshToggles(); update(); save(); });
     const reset = $('#tab-reset');
     if (reset) reset.addEventListener('click', () => {
-      for (const p of controlList()) P.setPath(state.setup, p, P.PARAMS[p].v);
+      for (const p of controlList()) if (p !== 'car.model') P.setPath(state.setup, p, stockOf(p));
       buildControls(); update(); save();
     });
     attachOrbit();
@@ -268,7 +294,30 @@
   }
   function controlList() {
     const t = tabById(state.tab);
-    return t.controls(state.axle);
+    return t.controls(state.axle).filter((p) => P.applies(p, state.setup));
+  }
+  const stockOf = (path) => P.stockValue(path, state.setup.car.model);
+  /** Where the current car's stock value comes from: kit, sp1, cal or est (null for the generic car). */
+  function sourceOf(path) {
+    const car = P.CARS[state.setup.car.model];
+    if (!car || car.id === 'generic') return null;
+    const e = car.src[path];
+    return e ? { tag: e[0], note: e[1] } : { tag: 'est', note: '' };
+  }
+  const SRC_LABEL = { kit: 'KIT', sp1: 'SP1', cal: 'CAL', est: 'EST' };
+  const srcBadge = (path) => { const s = sourceOf(path); return s ? `<span class="src src-${s.tag}" title="${s.note}">${SRC_LABEL[s.tag]}</span>` : ''; };
+  let undoSetup = null;
+  function switchCar(id) {
+    if (id === state.setup.car.model) return;
+    undoSetup = JSON.parse(JSON.stringify(state.setup));
+    state.setup = P.stockSetup(id);
+    state.travel = 0;
+    buildTab(); update(); save();
+    const nb = $('#notices');
+    if (nb) {
+      nb.insertAdjacentHTML('afterbegin', `<div class="notice ok" id="car-note">Loaded the ${P.CARS[id].name} ${P.CARS[id].kitName}. <button class="linkbtn" id="undo-car">Undo</button></div>`);
+      $('#undo-car').addEventListener('click', () => { if (undoSetup) { state.setup = undoSetup; undoSetup = null; buildTab(); update(); save(); } });
+    }
   }
   function refreshToggles() {
     const press = (sel, on) => { const b = $(sel); if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false'); };
@@ -464,16 +513,20 @@
       row.className = 'ctl';
       row.dataset.path = path;
       if (spec.options) {
-        row.innerHTML = `<div class="ctl-head"><label>${m.label}</label></div>
-          <div class="seg" role="group" aria-label="${m.label}">${spec.options.map((o) => `<button data-opt="${o}" id="${id}-${o}"><b>${m.options[o][0]}</b><span>${m.options[o][1]}</span></button>`).join('')}</div>`;
+        const src = sourceOf(path);
+        row.innerHTML = `<div class="ctl-head"><label>${m.label}${srcBadge(path)}</label></div>
+          <div class="seg" role="group" aria-label="${m.label}">${spec.options.map((o) => `<button data-opt="${o}" id="${id}-${o}"><b>${m.options[o][0]}</b><span>${m.options[o][1]}</span></button>`).join('')}</div>
+          ${path === 'car.model' ? '<div class="help">Switching car loads that car’s kit setup.</div>' : ''}${src && src.note ? `<div class="help srcnote">${src.note}</div>` : ''}`;
         row.querySelectorAll('[data-opt]').forEach((b) => b.addEventListener('click', () => {
+          if (path === 'car.model') { switchCar(b.dataset.opt); return; }
           P.setPath(state.setup, path, b.dataset.opt);
           refreshControls(); scheduleUpdate(); save();
         }));
       } else {
-        row.innerHTML = `<div class="ctl-head"><label for="${id}" id="${id}-l">${m.label}</label><button class="ctl-val" id="${id}-v" aria-label="Type a value for ${m.label}"></button><button class="stock" id="${id}-s" aria-label="Reset ${m.label} to stock">Stock</button></div>
+        const src = sourceOf(path);
+        row.innerHTML = `<div class="ctl-head"><label for="${id}" id="${id}-l">${m.label}${srcBadge(path)}</label><button class="ctl-val" id="${id}-v" aria-label="Type a value for ${m.label}"></button><button class="stock" id="${id}-s" aria-label="Reset ${m.label} to stock">Stock</button></div>
           <div class="ctl-input"><button class="step" id="${id}-dn" aria-label="Decrease ${m.label}">−</button><div class="ctl-widget"></div><button class="step" id="${id}-up" aria-label="Increase ${m.label}">+</button></div>
-          <div class="help">${m.help}<span class="alt" id="${id}-a"></span></div>`;
+          <div class="help">${m.help}<span class="alt" id="${id}-a"></span></div>${src && src.note ? `<div class="help srcnote">${src.note}</div>` : ''}`;
         const w = row.querySelector('.ctl-widget');
         if (state.ctl === 'wheel') buildWheel(w, path, spec, id, m.label);
         else if (state.ctl === 'dial') buildDial(w, path, spec, id, m.label);
@@ -482,7 +535,7 @@
         holdRepeat(row.querySelector('#' + id + '-up'), () => setParam(path, P.getPath(state.setup, path) + spec.step, true));
         const vb = row.querySelector('.ctl-val');
         vb.addEventListener('click', () => editValue(path, vb));
-        row.querySelector('.stock').addEventListener('click', () => setParam(path, spec.v, true));
+        row.querySelector('.stock').addEventListener('click', () => setParam(path, stockOf(path), true));
       }
       box.appendChild(row);
     }
@@ -526,7 +579,7 @@
         dial.setAttribute('aria-valuenow', v); dial.setAttribute('aria-valuetext', txt + ' ' + unit);
       }
       const sb = row.querySelector('.stock');
-      if (sb) sb.disabled = Math.abs(v - spec.v) < 1e-9;
+      if (sb) sb.disabled = Math.abs(v - stockOf(path)) < 1e-9;
       row.querySelector('#' + id + '-dn').disabled = v <= spec.min + 1e-9;
       row.querySelector('#' + id + '-up').disabled = v >= spec.max - 1e-9;
       let alt = '';
@@ -604,7 +657,9 @@
     const dg = $('#dg');
     if (!dg || state.view === '3d') return;
     dg.innerHTML = html;
-    dg.classList.toggle('multi', dg.querySelectorAll('svg').length > 1);
+    const nSvg = dg.querySelectorAll('svg').length;
+    dg.classList.toggle('multi', nSvg === 2);
+    dg.classList.toggle('multi3', nSvg > 2);
   }
   /** What the live 3D car shows on each topic: the same condition as the drawing. */
   function liveCondition(m) {
@@ -632,7 +687,7 @@
     const c = liveCondition(m);
     if (!c.res) return;
     dg.innerHTML = D3.render(m, c, { px: pxWidth(), yaw: state.cam.yaw, elev: state.cam.elev, E: c.E, loads: c.loads });
-    dg.classList.remove('multi');
+    dg.classList.remove('multi', 'multi3');
     $('#cap').innerHTML = `<span><b>Live 3D</b> · drag to rotate · ${c.note}</span><span>${scaleNote(c.E)}</span>`;
   }
 
@@ -723,7 +778,7 @@
     const j = P.steeringJacking(m);
     const full = m.steer.full;
     $('#tiles').innerHTML = tilesHTML([
-      { k: 'Caster', v: fmt(F.caster, 2), u: '°', s: `C-hub ${fmt(m.setup.front.caster)}° + kick-up ${fmtS(m.setup.front.kickup, 2)}°`, state: 'good' },
+      { k: 'Caster', v: fmt(F.caster, 2), u: '°', s: F.Hw.upperOnKingpin ? `rear ${fmtS(m.rear.caster, 1)}° · upper bulkhead inserts` : `C-hub ${fmt(m.setup.front.caster)}° + kick-up ${fmtS(m.setup.front.kickup, 2)}°`, state: 'good' },
       { k: 'Mechanical trail', v: fmt(F.trail, 2), u: 'mm', s: 'axis at ground ahead of patch' },
       { k: 'Camber at full lock', v: `${fmtS(full.camberIn)} / ${fmtS(full.camberOut)}`, u: '°', s: 'inside / outside wheel' },
       { k: 'Diagonal load at lock', v: j ? fmtS(j.diagonalGrams, 0) : '–', u: 'g', s: 'onto inside front + outside rear' },
@@ -767,13 +822,13 @@
 
   RENDER.toe = function (m) {
     const px = pxWidth();
-    draw2D(D.toeView(m, { px }) + D.axleView(m, 'front', { s: 0, px, ic: true, rod: true }).svg);
-    $('#cap').innerHTML = `<span><b>Top view</b>, front to the right, toe drawn ×5. Below: <b>front axle from behind</b> with the steering links.</span>`;
+    draw2D(D.toeView(m, { px }) + D.axleView(m, 'front', { s: 0, px, ic: true, rod: true }).svg + (m.rear.steered ? D.axleView(m, 'rear', { s: 0, px, ic: false, rod: true }).svg : ''));
+    $('#cap').innerHTML = `<span><b>Top view</b>, front to the right, toe drawn ×5. Below: <b>${m.rear.steered ? 'front and rear axles' : 'front axle'} from behind</b> with the ${m.rear.steered ? 'steering and toe links' : 'steering links'}.</span>`;
     const F = m.front, R = m.rear;
     const warnBS = (v) => (Math.abs(v) > 0.06 ? 'warn' : '');
     $('#tiles').innerHTML = tilesHTML([
-      { k: 'Front toe', v: fmtS(F.static.toe, 2), u: '°', s: F.static.toe >= 0 ? 'toe-in (per wheel)' : 'toe-out (per wheel)', state: 'good' },
-      { k: 'Rear toe', v: fmtS(R.static.toe, 2), u: '°', s: 'mounts + hub rotation from camber' },
+      { k: 'Front toe', v: fmtS(F.static.toe, 2), u: '°', s: Math.abs(F.static.toe) < 0.005 ? 'straight (per wheel)' : F.static.toe > 0 ? 'toe-in (per wheel)' : 'toe-out (per wheel)', state: 'good' },
+      { k: 'Rear toe', v: fmtS(R.static.toe, 2), u: '°', s: R.steered ? 'set by the toe links' : 'mounts + hub rotation from camber' },
       { k: 'Front bump steer', v: fmtS(F.toeGain, 3), u: '°/mm', s: F.toeGain > 0 ? 'toe-in in bump' : 'toe-out in bump', state: warnBS(F.toeGain) },
       { k: 'Rear bump steer', v: fmtS(R.toeGain, 3), u: '°/mm', s: R.toeGain > 0 ? 'toe-in in bump' : 'toe-out in bump', state: warnBS(R.toeGain) },
       { k: 'Front toe at +2 mm', v: fmtS(F.table.at(2, 'toe'), 2), u: '°', s: `${fmtS(F.table.at(-2, 'toe'), 2)}° at −2 mm` },
@@ -890,12 +945,16 @@
     const row = (path) => {
       const spec = P.PARAMS[path], v = P.getPath(state.setup, path), meta = metaFor(path, false);
       let txt;
-      if (spec.options) txt = META.frontDiff.options[v][0];
+      if (spec.options) txt = (path === 'car.model' ? META.model : META.frontDiff).options[v][0];
       else txt = (meta.signed ? fmtS(v, decimals(spec.step)) : fmt(v, decimals(spec.step))) + ' ' + spec.unit;
-      const changed = spec.options ? v !== spec.v : Math.abs(v - spec.v) > 1e-9;
-      return `<tr><th>${meta.label}</th><td class="${changed ? 'mod' : ''}">${txt}</td></tr>`;
+      const st = stockOf(path);
+      const changed = spec.options ? v !== st : Math.abs(v - st) > 1e-9;
+      return `<tr><th>${meta.label}</th><td class="srccell">${path === 'car.model' ? '' : srcBadge(path)}</td><td class="${changed ? 'mod' : ''}">${txt}</td></tr>`;
     };
-    const tables = groups.map(([name, pre]) => `<section class="card"><h3>${name}</h3><div class="sheet-wrap"><table class="sheet">${Object.keys(P.PARAMS).filter((k) => k.startsWith(pre)).map(row).join('')}</table></div></section>`).join('');
+    const tables = groups.map(([name, pre]) => `<section class="card"><h3>${name}</h3><div class="sheet-wrap"><table class="sheet">${Object.keys(P.PARAMS).filter((k) => k.startsWith(pre) && P.applies(k, state.setup)).map(row).join('')}</table></div></section>`).join('');
+    const car = P.CARS[state.setup.car.model];
+    const kitCard = car.info.length ? `<section class="card"><h3>${car.name} kit data</h3><p class="small">From RC Maker’s SP2 manual and product pages. Oils, coil counts and gauge readings are listed for reference; the model uses the geometry and rates.</p><div class="sheet-wrap"><table class="sheet">${car.info.map(([k, v2]) => `<tr><th>${k}</th><td class="wrap">${v2}</td></tr>`).join('')}</table></div>
+      <p class="small"><span class="src src-kit">KIT</span> published by RC Maker · <span class="src src-cal">CAL</span> solved to match a published kit measurement · <span class="src src-sp1">SP1</span> published for the SP1 · <span class="src src-est">EST</span> not published, typical value</p></section>` : '';
     const r = P.solveVehicle(m, { ay: 1.5 });
     const out = [
       ['Roll centre F / R', `${fmt(m.front.rcHeight, 1)} / ${fmt(m.rear.rcHeight, 1)} mm`],
@@ -911,7 +970,7 @@
       ['Overall width', `${fmt(m.widthOverall, 1)} mm`],
     ];
     $('#tiles').innerHTML = '';
-    $('#extra').innerHTML = `<div class="sheet-grid">${tables}<section class="card"><h3>Results</h3><div class="sheet-wrap"><table class="sheet">${out.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table></div></section>
+    $('#extra').innerHTML = `<div class="sheet-grid">${kitCard}${tables}<section class="card"><h3>Results</h3><div class="sheet-wrap"><table class="sheet">${out.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table></div></section>
       <section class="card"><h3>Save or share</h3><p class="small">Values that differ from stock are shown in green. Copy the setup as text to keep it or send it to a teammate, and paste one back in to load it.</p>
       <div class="btn-row"><button class="btn primary" id="copy">Copy setup</button><button class="btn" id="reset-all">Reset everything</button></div>
       <p class="small" id="copy-msg" aria-live="polite"></p>
@@ -928,7 +987,7 @@
     $('#reset-all').addEventListener('click', () => {
       const msg = $('#copy-msg');
       if (msg.dataset.confirm !== '1') { msg.dataset.confirm = '1'; msg.textContent = 'Tap Reset everything again to confirm.'; return; }
-      state.setup = P.stockSetup(); msg.dataset.confirm = ''; save(); update();
+      state.setup = P.stockSetup(state.setup.car.model); msg.dataset.confirm = ''; save(); update();
       $('#copy-msg').textContent = 'All values are back to stock.';
     });
     $('#load').addEventListener('click', () => {
@@ -988,7 +1047,8 @@
       'Ride frequency uses the sprung mass on each corner and the tyre stiffness.',
     ],
     car: [
-      'These are the baseline inputs. The model is a generic 190 mm 4WD touring car: 50 mm lower arms on hinge pins, turnbuckle camber links, C-hubs with steering blocks on kingpins, twin-bellcrank steering and inboard diffs.',
+      '<b>RC Maker SP2</b>: hubs on two balls (lower arm and upper arm) with steering arms front and rear, a rear toe link, an 8 mm steering rack, pushrod shocks on the bulkheads and a front spool. Values marked KIT come from RC Maker’s manual and product pages; EST values are not published and use typical numbers. The setup sheet lists the kit data.',
+      '<b>Generic TC</b>: 50 mm lower arms on hinge pins, turnbuckle camber links, C-hubs with steering blocks on kingpins, twin-bellcrank steering and rear toe from the arm mounts.',
       'Corner weights assume a level car with equal left and right weight.',
       'Wheel spacers and tyre width set the overall width, which is checked against the 190 mm limit.',
     ],

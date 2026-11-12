@@ -8,7 +8,9 @@ const P = require(path.join(__dirname, '..', 'web', 'js', 'physics.js'));
 const { sub, len, add } = P._internal;
 const DEG = P.DEG;
 const close = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol, `${msg || ''} expected ${b}, got ${a} (tol ${tol})`);
-const build = (mod) => { const s = P.stockSetup(); if (mod) mod(s); return P.buildModel(s); };
+// Textbook checks run on the generic C-hub car; SP2 checks use the RC Maker SP2 kit.
+const build = (mod) => { const s = P.stockSetup('generic'); if (mod) mod(s); return P.buildModel(s); };
+const buildSP2 = (mod) => { const s = P.stockSetup('sp2'); if (mod) mod(s); return P.buildModel(s); };
 
 // deterministic RNG for the fuzz test
 function rng(seed) { let x = seed >>> 0; return () => ((x = (x * 1664525 + 1013904223) >>> 0) / 4294967296); }
@@ -205,6 +207,67 @@ test('front-view roll centre also holds on the steered front corner when bump st
   close(C.rcHeight, rcZ - S.P[2], 1e-3, 'RC via IC');
 });
 
+test('RC Maker SP2 kit: reproduces the published kit numbers', () => {
+  const m = buildSP2();
+  assert.ok(m.ok, m.errors.join());
+  assert.deepEqual(m.warnings, []);
+  assert.equal(m.setup.car.model, 'sp2');
+  close(m.front.caster, 4, 0.05, 'front caster (kit inserts)');
+  close(m.rear.caster, -2.5, 0.05, 'rear caster (kit inserts)');
+  close(m.steer.full.inner, 27, 1e-6, 'kit lock, inside');
+  close(m.steer.full.outer, 17, 0.1, 'kit lock, outside (manual: roughly 17 deg)');
+  assert.ok(m.widthOverall <= 190.05, 'width within 190 mm');
+  close(m.setup.front.swayBar, 1.1, 1e-9); close(m.setup.rear.swayBar, 1.1, 1e-9);
+  assert.equal(m.setup.car.frontDiff, 'spool');
+  assert.ok(Math.abs(m.front.toeGain) < 0.02, 'front bump steer near zero with kit spacers');
+  assert.ok(m.front.rcHeight > 0 && m.rear.rcHeight > m.front.rcHeight, 'roll centres above ground, rear higher');
+});
+
+test('RC Maker SP2: rear toe link sets toe and keeps its length through travel', () => {
+  for (const toe of [0, 1.5, 3]) {
+    const m = buildSP2((s) => { s.rear.toe = toe; });
+    close(m.rear.static.toe, toe, 1e-9, 'rear toe from the toe link');
+  }
+  const m = buildSP2();
+  const R = m.rear;
+  for (let s = -4; s <= 5; s += 0.5) {
+    const st = R.stateAtTravel(s, 0);
+    assert.ok(st, `rear assembles at ${s}`);
+    close(len(sub(st.ball, R.plateBall(0))), R.Ltr, 1e-8, 'toe link length');
+    close(len(sub(st.B, R.U)), R.Lcl, 1e-8, 'upper arm length');
+  }
+  const more = buildSP2((s) => { s.rear.ballSpacer = 2; }).rear.toeGain;
+  assert.notEqual(Math.sign(more - R.toeGain), 0, 'toe-link ball spacer changes rear toe gain');
+});
+
+test('RC Maker SP2: caster comes from the upper balls, not from the hinge-pin angle', () => {
+  const a = buildSP2((s) => { s.rear.antiSquat = 0; s.front.kickup = 0; });
+  const b = buildSP2((s) => { s.rear.antiSquat = 4; s.front.kickup = 3; });
+  close(a.rear.caster, b.rear.caster, 0.05, 'rear caster unchanged by anti-squat');
+  close(a.front.caster, b.front.caster, 0.05, 'front caster unchanged by kick-up');
+  // on the C-hub car kick-up does add to caster
+  assert.ok(build((s) => { s.front.kickup = 3; }).front.caster > build().front.caster + 2.9);
+});
+
+test('cars: stock values, parameter availability and switching', () => {
+  assert.equal(P.stockSetup().car.model, 'sp2', 'SP2 is the default car');
+  assert.equal(P.sanitize({ car: { model: 'nope' } }).car.model, 'sp2');
+  assert.equal(P.sanitize({ car: { model: 'generic' } }).car.model, 'generic');
+  assert.equal(P.stockValue('front.caster', 'sp2'), 4);
+  assert.equal(P.stockValue('front.lock', 'sp2'), 27);
+  assert.equal(P.stockValue('front.lock', 'generic'), P.PARAMS['front.lock'].v);
+  assert.ok(P.applies('rear.caster', P.stockSetup('sp2')));
+  assert.ok(!P.applies('rear.caster', P.stockSetup('generic')));
+  for (const id of Object.keys(P.CARS)) {
+    const s = P.stockSetup(id);
+    for (const k in P.PARAMS) {
+      const p = P.PARAMS[k], v = P.getPath(s, k);
+      if (p.options) assert.ok(p.options.includes(v), `${id} ${k}`);
+      else assert.ok(v >= p.min && v <= p.max, `${id} ${k}=${v} within ${p.min}..${p.max}`);
+    }
+  }
+});
+
 test('sanitize: garbage input never breaks the model', () => {
   const junk = [undefined, null, {}, { car: { mass: 'heavy' } }, { front: { camber: NaN, droop: Infinity } }, { rear: { spring: -5, toe: '2.5' } }, { car: { frontDiff: 'banana' } }];
   for (const j of junk) {
@@ -222,9 +285,10 @@ test('fuzz: random setups inside the slider ranges stay finite and converge', ()
   const keys = Object.keys(P.PARAMS);
   let built = 0, failed = 0;
   for (let n = 0; n < 250; n++) {
-    const s = P.stockSetup();
+    const s = P.stockSetup(n % 2 ? 'generic' : 'sp2');
     for (const k of keys) {
       const p = P.PARAMS[k];
+      if (k === 'car.model') continue;
       if (p.options) { P.setPath(s, k, p.options[Math.floor(rand() * p.options.length)]); continue; }
       if (rand() < 0.5) P.setPath(s, k, p.min + rand() * (p.max - p.min));
     }

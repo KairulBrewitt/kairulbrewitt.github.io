@@ -46,7 +46,7 @@
       U: m(C.U), B: m(st.B), W: m(st.W), s: m(st.s), P: m(st.P), O: m(st.O),
       shockLow: m(st.shockLow), shockTop: m(C.shockTop), a,
     };
-    if (C.isF) {
+    if (C.steered) {
       g.kp = m(st.kp); g.kpTop = m(st.kpTop); g.ball = m(st.ball); g.plate = m(C.plateBall(pSide));
     }
     return g;
@@ -102,7 +102,7 @@
     for (let y = -gy; y <= gy; y += 50) { const a = proj([gx0, y, 0]), b = proj([gx1, y, 0]); groundSvg += `<line x1="${n(a[0])}" y1="${n(a[1])}" x2="${n(b[0])}" y2="${n(b[1])}" class="gridline3"/>`; }
 
     // chassis plate, towers, CG
-    const ch = P.HW.chassis;
+    const ch = model.hw.chassis;
     const plate = [[ch.front, ch.halfWidth, ch.thick], [ch.front, -ch.halfWidth, ch.thick], [-WB - ch.rear, -ch.halfWidth, ch.thick], [-WB - ch.rear, ch.halfWidth, ch.thick]].map(toWorld);
     const plateZ = plate.map(proj).reduce((s, p) => s + p[2], 0) / 4;
     prims.push({ z: plateZ + 400, d: `<polygon points="${plate.map(proj).map((p) => n(p[0]) + ',' + n(p[1])).join(' ')}" class="plate3"/>` });
@@ -124,8 +124,8 @@
       line(Wd(g.U), Wd(g.B), 'link3', -2);
       line(Wd(g.shockLow), Wd(g.shockTop), 'shock3', -1);
       // hub
-      if (g.C.isF) {
-        poly([g.O, g.kp, g.kpTop, g.B].map(Wd), 'hub3');
+      if (g.C.steered) {
+        poly((g.C.Hw.upperOnKingpin ? [g.O, g.B, add(g.W, mul(g.s, -9))] : [g.O, g.kp, g.kpTop, g.B]).map(Wd), 'hub3');
         line(Wd(g.ball), Wd(g.plate), 'rod3', -2);
         line(Wd(g.kp), Wd(g.ball), 'link3', -2);
       } else {

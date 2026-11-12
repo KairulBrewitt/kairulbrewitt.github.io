@@ -136,11 +136,19 @@
   }
 
   // ------------------------------------------------------------------
-  // Hardware: fixed part dimensions of a generic 190 mm touring car.
+  // Hardware: fixed part dimensions per car.
   // Coordinates for hub parts are in the hub's own frame, relative to the
-  // outer hinge pin: u forward (along the pin), v outward, w up.
+  // outer pivot of the lower arm: u forward (along the pin), v outward, w up.
+  //
+  // Two hub layouts are supported:
+  //  - C-hub (generic TC): the C-hub turns on the outer hinge pin, the camber
+  //    link has its own ball on the C-hub, a steering block turns on a kingpin.
+  //  - Ball upright (RC Maker SP2): the upright sits on a ball at the end of
+  //    the lower arm and on the upper arm's ball; the kingpin is the line
+  //    through the two balls (upperOnKingpin). The rear upright has its own
+  //    steering arm and a fixed-length toe link to the chassis (toeLink).
   // ------------------------------------------------------------------
-  const HW = {
+  const HW_GENERIC = {
     front: {
       innerY: 18,          // inner hinge pin, distance from centreline
       armLen: 50,          // inner pin to outer pin
@@ -171,6 +179,42 @@
     unsprungPerCorner: 50, // g: wheel, tyre, hub, half the arm and links
   };
 
+  // RC Maker SP2. Published: ball-jointed uprights front and rear, steering
+  // arms on all four hubs with a rear toe link, upper arms on balls on the
+  // upper bulkheads, pushrod/rocker shocks on the bulkheads, 8 mm steering
+  // rack. Part coordinates are not published; the values below are estimates
+  // shaped to that layout (the steering arm is calibrated to the manual's
+  // 27 deg inside / 17 deg outside kit lock, see CARS.sp2).
+  const HW_SP2 = {
+    front: {
+      innerY: 17, armLen: 52,
+      upperOnKingpin: true,
+      kpLow: [0, 0, 0],    // kingpin starts at the lower ball
+      kpLen: 21,           // lower ball to upper ball
+      wheel: [0, 14.52, 19.5],   // sets the 190 mm overall width with 4.0 mm hexes and 24 mm tyres
+      ballZ: 9,
+      shockArmZ: 3, shockTowerZ: 44,   // pushrod + rocker modelled as an equivalent strut
+      arbArm: 24, arbArmZ: 1.5, arbLever: 16, arbSpan: 62,
+      bellcrank: 15, plateX: -14, plateZ: 14.5,  // rack ball height: ~zero bump steer with the kit 0.5 mm spacers
+      kpi: 4,
+    },
+    rear: {
+      innerY: 17, armLen: 52,
+      upperOnKingpin: true,
+      kpLow: [0, 0, 0], kpLen: 21,
+      wheel: [0, 14.68, 19.5],
+      toeLink: true,
+      steerArm: [-12, -6, 8],          // rear steering-arm ball, relative to the lower ball
+      toeLinkIn: [-16, 22, 14.2],      // toe-link inner ball (x from rear axle, y, z): mild toe-in in bump
+      shockArmZ: 3, shockTowerZ: 44,
+      arbArm: 24, arbArmZ: 1.5, arbLever: 16, arbSpan: 62,
+      kpi: 4,
+    },
+    chassis: { halfWidth: 45, front: 46, rear: 22, thick: 2.2 },
+    unsprungPerCorner: 48,
+  };
+  const HW = HW_GENERIC; // kept for older callers
+
   // ------------------------------------------------------------------
   // Setup parameters: stock values + allowed range (inputs are clamped).
   // ------------------------------------------------------------------
@@ -183,6 +227,7 @@
     'car.tireWidth':   { v: 24,   min: 22,   max: 27,   step: 0.5,  unit: 'mm' },
     'car.tireRate':    { v: 10,   min: 4,    max: 25,   step: 0.5,  unit: 'N/mm' },
     'car.frontDiff':   { v: 'spool', options: ['spool', 'oneway', 'diff'] },
+    'car.model':       { v: 'sp2', options: ['sp2', 'generic'] },
 
     'front.rideHeight':  { v: 5.0,  min: 3.5,  max: 8.0,  step: 0.1,  unit: 'mm' },
     'front.camber':      { v: -1.5, min: -4.0, max: 1.0,  step: 0.1,  unit: '°' },
@@ -200,7 +245,7 @@
     'front.shockArm':    { v: 40,   min: 32,   max: 46,   step: 0.5,  unit: 'mm' },
     'front.shockTowerY': { v: 36,   min: 26,   max: 46,   step: 0.5,  unit: 'mm' },
     'front.swayBar':     { v: 1.2,  min: 0,    max: 1.8,  step: 0.1,  unit: 'mm' },
-    'front.ackInset':    { v: 4.0,  min: 0,    max: 10,   step: 0.5,  unit: 'mm' },
+    'front.ackInset':    { v: 4.0,  min: 0,    max: 14,   step: 0.5,  unit: 'mm' },
     'front.armLength':   { v: 14.0, min: 10,   max: 18,   step: 0.5,  unit: 'mm' },
     'front.plateY':      { v: 19.0, min: 12,   max: 26,   step: 0.5,  unit: 'mm' },
     'front.plateDX':     { v: 0.0,  min: -6,   max: 6,    step: 0.5,  unit: 'mm' },
@@ -217,6 +262,8 @@
     'rear.linkOutSpacer': { v: 1.0, min: 0,   max: 4,    step: 0.5,  unit: 'mm' },
     'rear.pivotZ':      { v: 6.5,  min: 5.0,  max: 9.0,  step: 0.25, unit: 'mm' },
     'rear.antiSquat':   { v: 2.0,  min: 0.0,  max: 5.0,  step: 0.25, unit: '°' },
+    'rear.caster':      { v: -2.5, min: -6.0, max: 3.0,  step: 0.5,  unit: '°' },
+    'rear.ballSpacer':  { v: 0.5,  min: 0,    max: 4,    step: 0.5,  unit: 'mm' },
     'rear.wheelSpacer': { v: 0.0,  min: -1.0, max: 2.0,  step: 0.25, unit: 'mm' },
     'rear.spring':      { v: 0.45, min: 0.25, max: 1.20, step: 0.01, unit: 'N/mm' },
     'rear.shockArm':    { v: 40,   min: 32,   max: 46,   step: 0.5,  unit: 'mm' },
@@ -224,17 +271,108 @@
     'rear.swayBar':     { v: 1.0,  min: 0,    max: 1.8,  step: 0.1,  unit: 'mm' },
   };
 
+  /**
+   * Cars. `setup` overrides the PARAMS defaults; `src` says where each kit
+   * value comes from: 'kit' = RC Maker's SP2 manual or product pages,
+   * 'sp1' = published for the SP1 (not stated for the SP2), anything not
+   * listed for the SP2 is an estimate. `info` is kit data the model does not
+   * use (oils, coil counts, gauge readings) for the setup sheet.
+   */
+  const CARS = {
+    sp2: {
+      id: 'sp2', name: 'RC Maker SP2', kitName: 'SP2 kit setup', hw: HW_SP2,
+      setup: {
+        car: { mass: 1380, frontPct: 49, cgHeight: 21, wheelbase: 257, tireDia: 64, tireWidth: 24, tireRate: 10, frontDiff: 'spool', model: 'sp2' },
+        front: {
+          rideHeight: 5.0, camber: -1.5, toe: 0.0, droop: 3.0, linkInZ: 25.5, linkInY: 20.5, linkOutSpacer: 1.0, pivotZ: 7.0,
+          kickup: 0.0, caster: 4.0, kpi: 4.0, wheelSpacer: 0.0, spring: 0.45, shockArm: 38, shockTowerY: 30, swayBar: 1.1,
+          ackInset: 10.0, armLength: 12.5, plateY: 19.0, plateDX: 0.0, ballSpacer: 0.5, plateSpacer: 0.5, lock: 27,
+        },
+        rear: {
+          rideHeight: 5.0, camber: -2.0, toe: 2.0, droop: 4.0, linkInZ: 25.0, linkInY: 21.0, linkOutSpacer: 1.0, pivotZ: 7.5,
+          antiSquat: 2.0, caster: -2.5, ballSpacer: 0.5, wheelSpacer: 0.0, spring: 0.50, shockArm: 38, shockTowerY: 30, swayBar: 1.1,
+        },
+      },
+      src: {
+        'car.wheelbase': ['sp1', 'SP1 kit figure (257 mm); RC Maker does not list the SP2 wheelbase.'],
+        'car.frontDiff': ['kit', 'Kit builds a spool (Step 2) and a gear diff (Step 1): spool front, diff rear.'],
+        'car.mass': ['est', 'Typical class minimum. The aluminium and carbon kits include brass centre weights to reach it.'],
+        'front.caster': ['kit', 'Kit: 4° upper-bulkhead inserts. Options 3°, 5°, 6°.'],
+        'rear.caster': ['kit', 'Kit: −2.5° upper-bulkhead inserts. Options −4.5°, −3.5°, −1.5°.'],
+        'front.linkOutSpacer': ['kit', 'Kit: 1 mm shim (2057) under the upper ball on the hub.'],
+        'rear.linkOutSpacer': ['kit', 'Kit: 1 mm shim (2057) under the upper ball on the hub.'],
+        'front.pivotZ': ['kit', 'Kit: 1.0 mm shim (2060) under the front arm mounts. More shim = higher roll centre.'],
+        'rear.pivotZ': ['kit', 'Kit: 1.5 mm shim (2061) under the rear arm mounts. More shim = higher roll centre.'],
+        'front.wheelSpacer': ['kit', 'Kit: 4.0 mm wheel hexes. The 3.5 mm option hex is −0.5 mm per side.'],
+        'rear.wheelSpacer': ['kit', 'Kit: 4.0 mm wheel hexes. The 3.5 mm option hex is −0.5 mm per side.'],
+        'front.swayBar': ['kit', 'Kit: 1.1 mm. Holders take 1.0–1.3 mm.'],
+        'rear.swayBar': ['kit', 'Kit: 1.1 mm. Holders take 1.0–1.3 mm.'],
+        'front.ballSpacer': ['kit', 'Kit: 0.5 mm shim (2056) under the steering-arm ball.'],
+        'rear.ballSpacer': ['kit', 'Kit: 0.5 mm shim (2056) under the rear steering-arm (toe-link) ball.'],
+        'front.plateSpacer': ['kit', 'Kit: 0.5 mm shims (2056) under the steering-rack balls.'],
+        'front.lock': ['kit', 'Kit lock is roughly 27° inside and 17° outside. Optional 5.0 and 6.0 mm stoppers reduce it.'],
+        'front.ackInset': ['cal', 'Not published. Set so the kit lock gives the manual’s 27° inside / 17° outside.'],
+        'front.spring': ['est', 'Kit: 4.5-coil XS spring. RC Maker does not publish its rate.'],
+        'rear.spring': ['est', 'Kit: 4.25-coil XS spring (fewer coils, stiffer). Rate not published.'],
+        'front.droop': ['est', 'Kit: 23.6 mm on an axle-based droop gauge. The app uses wheel travel below ride height; the kit runs 1 mm more droop at the rear.'],
+        'rear.droop': ['est', 'Kit: 22.6 mm on an axle-based droop gauge (1 mm more droop than the front).'],
+        'front.shockArm': ['est', 'Pushrod in the lowest rocker hole (kit, stiffest). The pushrod and rocker are modelled as an equivalent strut.'],
+        'rear.shockArm': ['est', 'Pushrod in the lowest rocker hole (kit, stiffest). The pushrod and rocker are modelled as an equivalent strut.'],
+      },
+      info: [
+        ['Chassis options', '2.2 mm carbon, 1.5 mm aluminium (85 g, with brass centre weights) or 1.2 mm spring steel (137 g)'],
+        ['Top deck', '2.0 mm carbon, medium flex, kit screw position 1'],
+        ['Shock oil', '350 cSt front, 400 cSt rear'],
+        ['Springs', 'XS 4.5 coils front, 4.25 coils rear'],
+        ['Rockers', 'Pushrod in the lowest rocker hole (stiffest)'],
+        ['Anti-roll bars', '1.1 mm front and rear'],
+        ['Droop (axle gauge)', '23.6 mm front, 22.6 mm rear'],
+        ['Up-stop (axle gauge)', '23 mm, usual range 21–23 mm'],
+        ['Upper arms', '≈57.5 mm front, ≈56 mm rear overall length'],
+        ['Steering links', '≈27 mm thread gap; rear toe links ≈16 mm; servo link ≈6 mm'],
+        ['Steering lock', '≈27° inside, 17° outside'],
+        ['Caster', '4° front, −2.5° rear'],
+        ['Arm mount shims', '1.0 mm front, 1.5 mm rear'],
+        ['Diffs', 'Spool front, gear diff rear (1.50 g of oil), low diff/spool height'],
+        ['Wheel hexes', '4.0 mm (3.5 mm option)'],
+      ],
+    },
+    generic: {
+      id: 'generic', name: 'Generic 190 mm TC', kitName: 'baseline setup', hw: HW_GENERIC,
+      setup: { car: { model: 'generic' }, front: {}, rear: {} },
+      src: {},
+      info: [],
+    },
+  };
+  const carOf = (setup) => CARS[(setup && setup.car && setup.car.model) || 'sp2'] || CARS.sp2;
+  const hwFor = (setup) => carOf(setup).hw;
+  /** Stock (kit) value of a parameter for the given car. */
+  function stockValue(path, model) {
+    const car = CARS[model] || CARS.sp2;
+    const v = getPath(car.setup, path);
+    return v !== undefined ? v : PARAMS[path].v;
+  }
+  /** Whether a parameter exists on this car (e.g. rear caster needs a rear kingpin). */
+  function applies(path, setup) {
+    const hw = hwFor(setup);
+    if (path === 'rear.caster' || path === 'rear.ballSpacer') return !!hw.rear.toeLink;
+    return true;
+  }
+
   function getPath(obj, path) { const [a, b] = path.split('.'); return obj && obj[a] ? obj[a][b] : undefined; }
   function setPath(obj, path, val) { const [a, b] = path.split('.'); (obj[a] = obj[a] || {})[b] = val; }
 
-  function stockSetup() {
+  function stockSetup(model) {
+    const id = CARS[model] ? model : 'sp2';
     const s = { car: {}, front: {}, rear: {} };
-    for (const k in PARAMS) setPath(s, k, PARAMS[k].v);
+    for (const k in PARAMS) setPath(s, k, stockValue(k, id));
+    s.car.model = id;
     return s;
   }
   /** Returns a complete, finite, in-range copy of any (partial) setup. */
   function sanitize(input) {
-    const out = stockSetup();
+    const m = input && input.car && CARS[input.car.model] ? input.car.model : 'sp2';
+    const out = stockSetup(m);
     for (const k in PARAMS) {
       const p = PARAMS[k], v = getPath(input, k);
       if (p.options) { if (p.options.includes(v)) setPath(out, k, v); continue; }
@@ -248,15 +386,16 @@
   // Corner model
   // ------------------------------------------------------------------
   function buildCorner(setup, axle, xShift) {
-    const car = setup.car, A = setup[axle], H = HW[axle];
+    const car = setup.car, A = setup[axle], H = hwFor(setup)[axle];
     const isF = axle === 'front';
+    const steered = isF || !!H.toeLink;   // has a kingpin and a steering / toe link
     const Rt = car.tireDia / 2;
     const x0 = (isF ? 0 : -car.wheelbase) + (xShift || 0);
 
     // Inner hinge-pin axis: pitch (+ = front end higher), yaw (+ = front toward centre).
     // Front "kick-up" and rear "anti-squat" both raise the front end of the pin.
     const pitch = (isF ? A.kickup : A.antiSquat) * DEG;
-    const yaw = isF ? 0 : A.toe * DEG;
+    const yaw = isF || H.toeLink ? 0 : A.toe * DEG;   // generic rear: toe from the mounts
     const a = norm([Math.cos(pitch) * Math.cos(yaw), -Math.cos(pitch) * Math.sin(yaw), Math.sin(pitch)]);
     const e3 = norm(sub([0, 0, 1], mul(a, a[2])));
     const e2 = cross(e3, a);
@@ -264,31 +403,42 @@
     const Pin = [x0, H.innerY, A.pivotZ];
     const oLoc = [0, H.armLen, 0];
     const U = [x0, A.linkInY, A.linkInZ];            // camber link inner ball
-    const Bloc = [H.camberBall[0], H.camberBall[1], H.camberBall[2] + A.linkOutSpacer];
     const shockTop = [x0, A.shockTowerY, H.shockTowerZ];
     const shockLoc = [0, A.shockArm, H.shockArmZ];   // arm frame, relative to inner pin
     const arbLoc = [0, H.arbArm, H.arbArmZ];
     const sLoc = [0, 1, 0];
 
-    let kpLoc = [0, 0, 0], kLoc = [0, 0, 1], wRel, ballRel = null, plate0 = null;
-    if (isF) {
+    let kpLoc = [0, 0, 0], kLoc = [0, 0, 1], ballRel = null, plate0 = null;
+    const wRel = [H.wheel[0], H.wheel[1] + A.wheelSpacer, H.wheel[2]];
+    if (steered) {
       kpLoc = H.kpLow.slice();
-      kLoc = norm([-Math.tan(A.caster * DEG), -Math.tan(A.kpi * DEG), 1]);
-      wRel = [H.wheel[0], H.wheel[1] + A.wheelSpacer, H.wheel[2]];
-      ballRel = [-A.armLength, -A.ackInset, H.ballZ + A.ballSpacer];
-      plate0 = [x0 + H.plateX + A.plateDX, A.plateY, H.plateZ + A.plateSpacer];
-    } else {
-      wRel = [H.wheel[0], H.wheel[1] + A.wheelSpacer, H.wheel[2]];
+      const casterDeg = isF ? A.caster : A.caster, kpiDeg = isF ? A.kpi : (H.kpi || 0);
+      const kSet = norm([-Math.tan(casterDeg * DEG), -Math.tan(kpiDeg * DEG), 1]);
+      // C-hub: caster is built into the C-hub, so the hinge-pin angle adds to it.
+      // Ball upright: caster is set by where the upper ball sits, measured on the chassis.
+      kLoc = H.upperOnKingpin ? mtv(M, kSet) : kSet;
+      if (isF) {
+        ballRel = [-A.armLength, -A.ackInset, H.ballZ + A.ballSpacer];
+        plate0 = [x0 + H.plateX + A.plateDX, A.plateY, H.plateZ + A.plateSpacer];
+      } else {
+        ballRel = [H.steerArm[0], H.steerArm[1], H.steerArm[2] + A.ballSpacer];
+        plate0 = [x0 + H.toeLinkIn[0], H.toeLinkIn[1], H.toeLinkIn[2]];
+      }
     }
+    // upper link ball on the hub: its own ball (C-hub) or the top of the kingpin (ball upright)
+    const Bloc = H.upperOnKingpin
+      ? add(kpLoc, mul(kLoc, H.kpLen + A.linkOutSpacer))
+      : [H.camberBall[0], H.camberBall[1], H.camberBall[2] + A.linkOutSpacer];
 
     const C = {
-      axle, isF, Rt, x0, a, M, Pin, U, shockTop, Hw: H, A, car,
+      axle, isF, steered, Rt, x0, a, M, Pin, U, shockTop, Hw: H, A, car,
       Lcl: NaN, Ltr: NaN, pDir: 1, pMax: 0,
     };
 
     /** Plate ball position for lateral plate displacement p (left-side ball). */
     C.plateBall = function (p) {
-      if (!isF) return null;
+      if (!steered) return null;
+      if (!isF) return plate0.slice();   // rear toe link: fixed inner ball
       const r = H.bellcrank, pp = clamp(p, -r * 0.95, r * 0.95);
       return [plate0[0] + (r - Math.sqrt(r * r - pp * pp)), plate0[1] + pp, plate0[2]];
     };
@@ -303,11 +453,11 @@
       const Rh = mm(rotM(a, psi), M);
       const kp = add(O, mv(Rh, kpLoc));
       const kW = mv(Rh, kLoc);
-      const Rb = isF ? mm(rotM(kW, del), Rh) : Rh;
+      const Rb = steered ? mm(rotM(kW, del), Rh) : Rh;
       const W = add(kp, mv(Rb, wRel));
       const s = mv(Rb, sLoc);
       const B = add(O, mv(Rh, Bloc));
-      const ball = isF ? add(kp, mv(Rb, ballRel)) : null;
+      const ball = steered ? add(kp, mv(Rb, ballRel)) : null;
       const shockLow = add(Pin, mv(Ra, mv(M, shockLoc)));
       const arbPt = add(Pin, mv(Ra, mv(M, arbLoc)));
       // lowest point of the wheel's centre-plane circle = contact patch
@@ -319,7 +469,7 @@
         camber: -Math.asin(clamp(s[2], -1, 1)) * RAD,
         toe: Math.atan2(s[0], s[1]) * RAD,        // + = toe-in (left wheel)
         heading: Math.atan2(fwd[1], fwd[0]) * RAD, // + = pointing left
-        kpTop: isF ? add(kp, mul(kW, H.kpLen)) : null,
+        kpTop: steered ? add(kp, mul(kW, H.kpLen)) : null,
       };
     };
 
@@ -330,7 +480,7 @@
     };
     /** Steer angle from the steering link for given arm/hub angles and plate displacement. */
     C.delFor = function (th, psi, p, ref) {
-      if (!isF) return 0;
+      if (!steered) return 0;
       const O = add(Pin, mv(rotM(a, th), mv(M, oLoc)));
       const Rh = mm(rotM(a, psi), M);
       const kp = add(O, mv(Rh, kpLoc));
@@ -347,17 +497,17 @@
     };
 
     // ---------- static solve: ride height, camber, toe -> link lengths ----------
-    const target = { h: A.rideHeight, camber: A.camber, toe: isF ? A.toe : null };
+    const target = { h: A.rideHeight, camber: A.camber, toe: steered ? A.toe : null };
     function innerAngles(th) {
       // alternate closed-form solves for hub angle (camber) and steer (toe)
       let psi = 0, del = 0;
       const nz = -Math.sin(target.camber * DEG);
       for (let i = 0; i < 30; i++) {
-        const sv = mv(M, isF ? mv(rotM(kLoc, del), sLoc) : sLoc);
+        const sv = mv(M, steered ? mv(rotM(kLoc, del), sLoc) : sLoc);
         const psiN = solveRotDot(a, sv, [0, 0, 1], nz, psi);
         if (!isFinite(psiN)) return null;
         let delN = 0;
-        if (isF) {
+        if (steered) {
           const Rh = mm(rotM(a, psiN), M);
           const kW = mv(Rh, kLoc);
           const tz = target.toe * DEG;
@@ -380,7 +530,7 @@
     C.th0 = th0; C.psi0 = ang0[0]; C.del0 = ang0[1];
     const S0 = C.pose(th0, C.psi0, C.del0);
     C.Lcl = len(sub(S0.B, U));
-    C.Ltr = isF ? len(sub(S0.ball, C.plateBall(0))) : NaN;
+    C.Ltr = steered ? len(sub(S0.ball, C.plateBall(0))) : NaN;
     C.static = S0;
     C.ok = true;
 
@@ -436,7 +586,7 @@
     C.trackHalf = yP;
     C.widthHalf = S0.W[1] + car.tireWidth / 2;
 
-    if (isF) {
+    if (steered) {
       const k = S0.kW, kp = S0.kp;
       C.caster = Math.atan2(-k[0], k[2]) * RAD;
       C.kpi = Math.atan2(-k[1], k[2]) * RAD;
@@ -446,8 +596,10 @@
       C.trail = Gp[0] - S0.P[0];
       C.scrubRadius = S0.P[1] - Gp[1];
       // which plate direction turns the car left?
-      const sp = C.state(th0, 1);
-      C.pDir = sp && sp.heading > S0.heading ? 1 : -1;
+      if (isF) {
+        const sp = C.state(th0, 1);
+        C.pDir = sp && sp.heading > S0.heading ? 1 : -1;
+      }
     }
     return C;
   }
@@ -598,7 +750,7 @@
     if (F.ok) F = buildCorner(setup, 'front', -F.wheelX);
     let R = buildCorner(setup, 'rear');
     if (R.ok) R = buildCorner(setup, 'rear', -setup.car.wheelbase - R.wheelX);
-    const model = { setup, front: F, rear: R, ok: F.ok && R.ok, warnings: [], errors: [] };
+    const model = { setup, front: F, rear: R, ok: F.ok && R.ok, warnings: [], errors: [], hw: hwFor(setup), car: carOf(setup) };
     if (!F.ok) model.errors.push('Front: ' + F.error);
     if (!R.ok) model.errors.push('Rear: ' + R.error);
     if (!model.ok) return model;
@@ -610,7 +762,7 @@
     model.a = (1 - f) * WB;            // CG to front axle
     model.b = f * WB;                  // CG to rear axle
     model.h = car.cgHeight;
-    const mu = HW.unsprungPerCorner / 1000;
+    const mu = model.hw.unsprungPerCorner / 1000;
     model.mUnsprung = mu;
     model.mSprung = m - 4 * mu;
     model.N0 = { front: m * G * f / 2, rear: m * G * (1 - f) / 2 };
@@ -781,7 +933,7 @@
       };
     });
     // chassis plate corners: lowest point above ground
-    const ch = HW.chassis, dh = X[0], phi = X[1] / 1000, th = X[2] / 1000;
+    const ch = model.hw.chassis, dh = X[0], phi = X[1] / 1000, th = X[2] / 1000;
     const hF = model.setup.front.rideHeight, hR = model.setup.rear.rideHeight;
     const plateH = (xc, yc) => {
       const xa = xc; // relative to CG
@@ -894,8 +1046,8 @@
   };
 
   return {
-    DEG, RAD, G, HW, PARAMS, TBL,
-    stockSetup, sanitize, getPath, setPath,
+    DEG, RAD, G, HW, HW_GENERIC, HW_SP2, CARS, PARAMS, TBL,
+    stockSetup, sanitize, getPath, setPath, stockValue, applies, carOf, hwFor,
     buildModel, buildCorner, solveVehicle, liftOffG, steeringJacking, steerAt, travelSweep, idealOuter, frontViewAt,
     units,
     _internal: { solveTrig, solveRotDist, solveRotDot, findRoot, rotM, mv, mm, norm, cross, dot, sub, add, mul, len },
