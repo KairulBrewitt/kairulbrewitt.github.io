@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TC Setup Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Interactive 1/10 touring car suspension geometry: camber, roll centre, caster, Ackermann, toe, bump steer, anti-squat, droop and load transfer, solved in 3D.">
+<meta name="theme-color" content="#0a0d0c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="wrap top">
+  <div class="eyebrow"><span><b>TC Setup Lab</b> · 1/10 touring car</span><button class="theme-btn" id="theme" type="button">AUTO</button></div>
+  <h1 id="title">Camber &amp; roll centre</h1>
+</header>
+<nav class="tabs" aria-label="Topics"><div class="wrap tabs-inner" id="tabs" role="tablist"></div></nav>
+<main class="wrap" id="main"><p class="small">Loading the geometry solver…</p></main>
+<footer class="wrap foot">
+  <p>Quasi-static model of a generic 190 mm 4WD touring car. The suspension geometry is solved in full 3D for every setting. Cornering and acceleration are treated as steady state, with no damper, tyre-slip or inertia dynamics. Each axle's lateral force follows the CG position and is shared between its two tyres in proportion to load.</p>
+  <p>Part dimensions are typical values, not those of a specific kit.</p>
+</footer>
+<script src="js/physics.js"></script>
+<script src="js/draw.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

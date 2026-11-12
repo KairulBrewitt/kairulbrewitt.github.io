@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wheel with a tilted steering axis (green) and a lower arm (orange). 108dp canvas, 66dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:strokeColor="#93A19A" android:strokeWidth="2.5" android:pathData="M26,78 L82,78" />
+    <path android:fillColor="#1D2421" android:strokeColor="#EEF3EF" android:strokeWidth="3.5"
+        android:pathData="M58,54 m-22,0 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0" />
+    <path android:fillColor="#2C3632" android:strokeColor="#EEF3EF" android:strokeWidth="2.5"
+        android:pathData="M58,54 m-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0" />
+    <path android:strokeColor="#3DDC84" android:strokeWidth="4.5" android:strokeLineCap="round"
+        android:pathData="M48,81 L67,26" />
+    <path android:strokeColor="#FF9A3C" android:strokeWidth="5" android:strokeLineCap="round"
+        android:pathData="M28,59 L46,57" />
+</vector>

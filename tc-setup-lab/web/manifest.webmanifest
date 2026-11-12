@@ -1,0 +1,12 @@
+{
+  "name": "TC Setup Lab",
+  "short_name": "TC Setup",
+  "description": "Interactive 1/10 touring car suspension geometry, solved in 3D.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0d0c",
+  "theme_color": "#0a0d0c",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
