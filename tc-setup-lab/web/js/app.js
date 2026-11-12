@@ -5,7 +5,7 @@
  */
 (function () {
   'use strict';
-  const P = window.TCPhysics, D = window.TCDraw;
+  const P = window.TCPhysics, D = window.TCDraw, D3 = window.TCDraw3D;
   const KEY = 'tc-setup-lab:v1';
   const $ = (sel, el) => (el || document).querySelector(sel);
   const fmt = D.fmt, fmtS = D.fmtS;
@@ -93,6 +93,14 @@
   const state = {
     setup: P.stockSetup(), tab: 'camber', axle: 'front',
     travel: 0, steer: 1, ay: 1.4, ax: 1.0, exaggerate: true, theme: 'auto',
+    ctl: 'slider', view: '2d', pinned: true, cam: { yaw: 35, elev: 22 },
+  };
+  const CTL_STYLES = [['slider', 'Slider'], ['wheel', 'Wheel'], ['dial', 'Dial']];
+  // starting camera for the live 3D view on each topic
+  const CAM_DEFAULT = {
+    camber: { yaw: 180, elev: 8 }, springs: { yaw: 200, elev: 14 }, droop: { yaw: 196, elev: 10 },
+    antisquat: { yaw: -90, elev: 4 }, ackermann: { yaw: 180, elev: 86 }, toe: { yaw: 180, elev: 86 },
+    caster: { yaw: 35, elev: 18 }, car: { yaw: 35, elev: 22 },
   };
   function load() {
     try {
@@ -103,6 +111,9 @@
       if (d.axle === 'front' || d.axle === 'rear') state.axle = d.axle;
       if (typeof d.exaggerate === 'boolean') state.exaggerate = d.exaggerate;
       if (['auto', 'dark', 'light'].includes(d.theme)) state.theme = d.theme;
+      if (CTL_STYLES.some(([k]) => k === d.ctl)) state.ctl = d.ctl;
+      if (d.view === '2d' || d.view === '3d') state.view = d.view;
+      if (typeof d.pinned === 'boolean') state.pinned = d.pinned;
       if (d.tab && TABS.some((t) => t.id === d.tab)) state.tab = d.tab;
     } catch (e) { /* storage unavailable: run with stock values */ }
   }
@@ -111,7 +122,7 @@
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       try {
-        localStorage.setItem(KEY, JSON.stringify({ setup: state.setup, axle: state.axle, exaggerate: state.exaggerate, theme: state.theme, tab: state.tab }));
+        localStorage.setItem(KEY, JSON.stringify({ setup: state.setup, axle: state.axle, exaggerate: state.exaggerate, theme: state.theme, tab: state.tab, ctl: state.ctl, view: state.view, pinned: state.pinned }));
       } catch (e) { /* ignore */ }
     }, 250);
   }
@@ -149,7 +160,9 @@
       state.theme = state.theme === 'auto' ? 'dark' : state.theme === 'dark' ? 'light' : 'auto';
       applyTheme(); save();
     });
-    window.addEventListener('resize', () => scheduleUpdate());
+    const setTabsH = () => document.documentElement.style.setProperty('--tabs-h', ($('.tabs').offsetHeight || 52) + 'px');
+    setTabsH();
+    window.addEventListener('resize', () => { setTabsH(); scheduleUpdate(); });
     window.addEventListener('hashchange', () => { const id = location.hash.slice(1); if (id && id !== state.tab && TABS.some((t) => t.id === id)) selectTab(id, false); });
   }
   function applyTheme() {
@@ -184,10 +197,23 @@
     const t = tabById(state.tab);
     el.title.textContent = t.title;
     document.title = 'TC Setup Lab';
+    state.cam = Object.assign({}, CAM_DEFAULT[t.id] || D3.VIEWS.iso);
     const parts = [];
     parts.push('<div id="notices"></div>');
     if (t.id !== 'sheet') {
-      parts.push(`<section class="drawing" aria-label="Diagram"><div class="cap" id="cap"></div><div id="dg"></div><div id="chips" class="chips" hidden></div><div id="scrub" class="scrub"></div></section>`);
+      parts.push(`<section class="drawing${state.pinned ? ' pinned' : ''}" id="drawing" aria-label="Live view">
+        <div class="viewbar">
+          <div class="vseg" role="group" aria-label="View"><button id="v-2d" data-view="2d">Drawing</button><button id="v-3d" data-view="3d">3D car</button></div>
+          <span class="vgap"></span>
+          <button class="chip" id="ex-chip" hidden>Exaggerate</button>
+          <button class="chip" id="pin-chip">Pin</button>
+        </div>
+        <div class="cap" id="cap"></div>
+        <div class="dg-wrap"><div id="dg"></div>
+          <div class="v3" id="v3" hidden>${Object.keys(D3.VIEWS).map((v) => `<button data-cam="${v}">${{ iso: '3/4', front: 'Front', side: 'Side', rear: 'Rear', top: 'Top' }[v]}</button>`).join('')}</div>
+        </div>
+        <div id="scrub" class="scrub"></div>
+      </section>`);
     }
     if (t.axle) {
       const lab = t.axleIsView ? ['Front axle', 'view from behind'] : ['Front', 'axle'];
@@ -197,7 +223,8 @@
     parts.push('<div class="tiles" id="tiles"></div>');
     parts.push('<div id="extra"></div>');
     if (t.id !== 'sheet') {
-      parts.push('<h2 class="section-h">Adjust</h2><div class="controls" id="controls"></div>');
+      parts.push(`<div class="adjust-head"><h2 class="section-h">Adjust</h2><div class="vseg" role="group" aria-label="Adjust with">${CTL_STYLES.map(([k, l]) => `<button data-ctl="${k}" id="ctl-${k}">${l}</button>`).join('')}</div></div>`);
+      parts.push('<div class="controls" id="controls"></div>');
       parts.push('<div class="btn-row"><button class="btn" id="tab-reset">Back to stock</button></div>');
     }
     parts.push('<div id="charts" style="display:grid;gap:14px"></div>');
@@ -210,55 +237,252 @@
         buildControls(); update(); save();
       });
     }
+    for (const b of el.main.querySelectorAll('[data-ctl]')) {
+      b.addEventListener('click', () => { state.ctl = b.dataset.ctl; refreshToggles(); buildControls(); save(); });
+    }
+    for (const b of el.main.querySelectorAll('[data-view]')) {
+      b.addEventListener('click', () => { state.view = b.dataset.view; refreshToggles(); update(); save(); });
+    }
+    for (const b of el.main.querySelectorAll('[data-cam]')) {
+      b.addEventListener('click', () => { state.cam = Object.assign({}, D3.VIEWS[b.dataset.cam]); refreshToggles(); update(); });
+    }
+    const pin = $('#pin-chip');
+    if (pin) pin.addEventListener('click', () => {
+      state.pinned = !state.pinned;
+      $('#drawing').classList.toggle('pinned', state.pinned);
+      refreshToggles(); save();
+    });
+    const ex = $('#ex-chip');
+    if (ex) ex.addEventListener('click', () => { state.exaggerate = !state.exaggerate; refreshToggles(); update(); save(); });
     const reset = $('#tab-reset');
     if (reset) reset.addEventListener('click', () => {
       for (const p of controlList()) P.setPath(state.setup, p, P.PARAMS[p].v);
       buildControls(); update(); save();
     });
+    attachOrbit();
     buildScrub();
     buildControls();
+    refreshToggles();
     $('#explain').innerHTML = '<h3>How it works on track</h3><ul>' + (EXPLAIN[t.id] || []).map((x) => `<li>${x}</li>`).join('') + '</ul>';
   }
   function controlList() {
     const t = tabById(state.tab);
     return t.controls(state.axle);
   }
+  function refreshToggles() {
+    const press = (sel, on) => { const b = $(sel); if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false'); };
+    press('#v-2d', state.view !== '3d'); press('#v-3d', state.view === '3d');
+    for (const [k] of CTL_STYLES) press('#ctl-' + k, state.ctl === k);
+    press('#pin-chip', state.pinned);
+    const pin = $('#pin-chip'); if (pin) pin.textContent = state.pinned ? 'Pinned' : 'Pin';
+    const ex = $('#ex-chip');
+    if (ex) { ex.hidden = !(SCRUB[state.tab] && SCRUB[state.tab].exaggerate); press('#ex-chip', state.exaggerate); }
+    const v3 = $('#v3');
+    if (v3) {
+      v3.hidden = state.view !== '3d';
+      for (const b of v3.querySelectorAll('[data-cam]')) {
+        const v = D3.VIEWS[b.dataset.cam];
+        b.setAttribute('aria-pressed', Math.abs(v.yaw - state.cam.yaw) < 0.5 && Math.abs(v.elev - state.cam.elev) < 0.5 ? 'true' : 'false');
+      }
+    }
+    const dg = $('#dg'); if (dg) dg.classList.toggle('orbit', state.view === '3d');
+  }
 
-  // ---------- adjusters ----------
+  // ---------- 3D orbit (drag to rotate) ----------
+  function attachOrbit() {
+    const dg = $('#dg');
+    if (!dg) return;
+    let drag = null;
+    dg.addEventListener('pointerdown', (e) => {
+      if (state.view !== '3d') return;
+      drag = { x: e.clientX, y: e.clientY, yaw: state.cam.yaw, elev: state.cam.elev };
+      try { dg.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    });
+    dg.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      state.cam.yaw = drag.yaw - (e.clientX - drag.x) * 0.45;
+      state.cam.elev = Math.max(2, Math.min(88, drag.elev + (e.clientY - drag.y) * 0.35));
+      refreshToggles();
+      scheduleLive();
+    });
+    const end = () => { drag = null; };
+    dg.addEventListener('pointerup', end);
+    dg.addEventListener('pointercancel', end);
+    dg.addEventListener('dblclick', () => { if (state.view === '3d') { state.cam = Object.assign({}, CAM_DEFAULT[state.tab] || D3.VIEWS.iso); refreshToggles(); scheduleLive(); } });
+  }
+  let liveRaf = 0;
+  function scheduleLive() { if (!liveRaf) liveRaf = requestAnimationFrame(() => { liveRaf = 0; const m = getModel(); if (m.ok) render3D(m); }); }
+
+  // ---------- adjusters: slider, thumbwheel or dial, plus -/+ steps ----------
+  const WHEEL_PX = 10; // drag distance per step on the thumbwheel (one rib)
+  function snap(spec, v) {
+    const x = spec.min + Math.round((v - spec.min) / spec.step) * spec.step;
+    return parseFloat(Math.min(spec.max, Math.max(spec.min, x)).toFixed(4));
+  }
+  let lastTick = 0;
+  function tick() {
+    const now = Date.now();
+    if (now - lastTick < 25) return;
+    lastTick = now;
+    try { if (navigator.vibrate) navigator.vibrate(5); } catch (e) { /* no haptics */ }
+  }
+  function setParam(path, v, haptic) {
+    const spec = P.PARAMS[path];
+    const nv = snap(spec, v), old = P.getPath(state.setup, path);
+    if (nv === old) return false;
+    P.setPath(state.setup, path, nv);
+    if (haptic) tick();
+    refreshControls();
+    scheduleUpdate(); save();
+    return true;
+  }
+  function holdRepeat(btn, fn) {
+    let t1 = 0, t2 = 0;
+    const stop = () => { clearTimeout(t1); clearInterval(t2); };
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      fn();
+      stop();
+      t1 = setTimeout(() => { t2 = setInterval(fn, 70); }, 380);
+    });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel', 'blur']) btn.addEventListener(ev, stop);
+    btn.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } });
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+  function keySteps(el, path, spec) {
+    el.addEventListener('keydown', (e) => {
+      const d = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 5, PageDown: -5 }[e.key];
+      if (d) { e.preventDefault(); setParam(path, P.getPath(state.setup, path) + d * spec.step, true); }
+      if (e.key === 'Home') { e.preventDefault(); setParam(path, spec.min, true); }
+      if (e.key === 'End') { e.preventDefault(); setParam(path, spec.max, true); }
+    });
+  }
+  function buildSlider(w, path, spec, id) {
+    w.innerHTML = `<input type="range" id="${id}" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${P.getPath(state.setup, path)}">`;
+    const input = w.querySelector('input');
+    input.addEventListener('input', () => setParam(path, parseFloat(input.value), false));
+  }
+  function buildWheel(w, path, spec, id, label) {
+    w.innerHTML = `<div class="wheel" id="${id}" role="slider" tabindex="0" aria-label="${label}" aria-valuemin="${spec.min}" aria-valuemax="${spec.max}"><div class="wheel-drum"></div><div class="wheel-mark"></div></div><div class="wheel-range"><i></i></div>`;
+    const el2 = w.querySelector('.wheel');
+    let drag = null;
+    el2.addEventListener('pointerdown', (e) => {
+      drag = { x: e.clientX, t: e.timeStamp, acc: 0 };
+      el2.classList.add('active');
+      try { el2.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    });
+    el2.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dt = Math.max(1, e.timeStamp - drag.t);
+      drag.x = e.clientX; drag.t = e.timeStamp;
+      const speed = Math.abs(dx) / dt;                      // px per ms
+      drag.acc += dx * (speed > 1.4 ? 4 : speed > 0.7 ? 2 : 1); // flick to travel faster
+      const steps = Math.trunc(drag.acc / WHEEL_PX);
+      if (steps) { drag.acc -= steps * WHEEL_PX; setParam(path, P.getPath(state.setup, path) + steps * spec.step, true); }
+    });
+    const end = () => { drag = null; el2.classList.remove('active'); };
+    el2.addEventListener('pointerup', end);
+    el2.addEventListener('pointercancel', end);
+    keySteps(el2, path, spec);
+  }
+  const DIAL_SWEEP = 270;
+  const dialPt = (a, r) => [Math.sin(a * Math.PI / 180) * r, -Math.cos(a * Math.PI / 180) * r];
+  function dialArc(a0, a1, r) {
+    const p0 = dialPt(a0, r), p1 = dialPt(a1, r);
+    return `M${p0[0].toFixed(2)} ${p0[1].toFixed(2)} A${r} ${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${p1[0].toFixed(2)} ${p1[1].toFixed(2)}`;
+  }
+  function buildDial(w, path, spec, id, label) {
+    const nSteps = Math.round((spec.max - spec.min) / spec.step);
+    const div = nSteps <= 40 ? nSteps : 20;
+    let ticks = '';
+    for (let i = 0; i <= div; i++) {
+      const a = -DIAL_SWEEP / 2 + DIAL_SWEEP * i / div, major = i === 0 || i === div || (div > 10 ? i % 5 === 0 : true);
+      const p0 = dialPt(a, major ? 50 : 52), p1 = dialPt(a, 57);
+      ticks += `<line x1="${p0[0].toFixed(2)}" y1="${p0[1].toFixed(2)}" x2="${p1[0].toFixed(2)}" y2="${p1[1].toFixed(2)}" class="tick${major ? ' major' : ''}"/>`;
+    }
+    w.innerHTML = `<div class="dial" id="${id}" role="slider" tabindex="0" aria-label="${label}" aria-valuemin="${spec.min}" aria-valuemax="${spec.max}">
+      <svg viewBox="-60 -60 120 120" aria-hidden="true">${ticks}<path class="track" d="${dialArc(-DIAL_SWEEP / 2, DIAL_SWEEP / 2, 44)}"/><path class="arc" d=""/>
+      <g class="knobg"><circle r="31" class="knob"/><line x1="0" y1="-14" x2="0" y2="-27" class="mark"/></g></svg><div class="dial-v"></div></div>`;
+    const el2 = w.querySelector('.dial');
+    let drag = null;
+    const angleAt = (e) => {
+      const r = el2.getBoundingClientRect();
+      return Math.atan2(e.clientX - (r.left + r.width / 2), -(e.clientY - (r.top + r.height / 2))) * 180 / Math.PI;
+    };
+    el2.addEventListener('pointerdown', (e) => {
+      drag = { a: angleAt(e), acc: 0 };
+      el2.classList.add('active');
+      try { el2.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    });
+    el2.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const a = angleAt(e);
+      let d = a - drag.a;
+      if (d > 180) d -= 360; if (d < -180) d += 360;
+      drag.a = a;
+      drag.acc += d / DIAL_SWEEP * (spec.max - spec.min);
+      const steps = Math.trunc(drag.acc / spec.step);
+      if (steps) { drag.acc -= steps * spec.step; setParam(path, P.getPath(state.setup, path) + steps * spec.step, true); }
+    });
+    const end = () => { drag = null; el2.classList.remove('active'); };
+    el2.addEventListener('pointerup', end);
+    el2.addEventListener('pointercancel', end);
+    keySteps(el2, path, spec);
+  }
+  function editValue(path, btn) {
+    const spec = P.PARAMS[path];
+    const input = document.createElement('input');
+    input.type = 'number'; input.step = spec.step; input.min = spec.min; input.max = spec.max;
+    input.value = P.getPath(state.setup, path);
+    input.className = 'ctl-edit';
+    input.setAttribute('aria-label', 'Value');
+    btn.replaceWith(input);
+    input.focus(); input.select();
+    let done = false;
+    const finish = (apply) => {
+      if (done) return;
+      done = true;
+      if (apply) { const v = parseFloat(String(input.value).replace(',', '.')); if (isFinite(v)) setParam(path, v, false); }
+      input.replaceWith(btn);
+      refreshControls();
+    };
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') finish(true); if (e.key === 'Escape') finish(false); });
+    input.addEventListener('blur', () => finish(true));
+  }
   function buildControls() {
     const box = $('#controls');
     if (!box) return;
     const t = tabById(state.tab);
     const prefix = !t.axle || t.axleIsView;
     box.innerHTML = '';
+    box.dataset.style = state.ctl;
     for (const path of controlList()) {
       const spec = P.PARAMS[path], m = metaFor(path, prefix);
       const id = 'c-' + path.replace('.', '-');
       const row = document.createElement('div');
       row.className = 'ctl';
+      row.dataset.path = path;
       if (spec.options) {
         row.innerHTML = `<div class="ctl-head"><label>${m.label}</label></div>
           <div class="seg" role="group" aria-label="${m.label}">${spec.options.map((o) => `<button data-opt="${o}" id="${id}-${o}"><b>${m.options[o][0]}</b><span>${m.options[o][1]}</span></button>`).join('')}</div>`;
         row.querySelectorAll('[data-opt]').forEach((b) => b.addEventListener('click', () => {
           P.setPath(state.setup, path, b.dataset.opt);
-          scheduleUpdate(); save();
+          refreshControls(); scheduleUpdate(); save();
         }));
       } else {
-        row.innerHTML = `<div class="ctl-head"><label for="${id}">${m.label}</label><span class="ctl-val" id="${id}-v"></span><button class="stock" id="${id}-s" aria-label="Reset ${m.label} to stock">Stock</button></div>
-          <input type="range" id="${id}" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${P.getPath(state.setup, path)}">
+        row.innerHTML = `<div class="ctl-head"><label for="${id}" id="${id}-l">${m.label}</label><button class="ctl-val" id="${id}-v" aria-label="Type a value for ${m.label}"></button><button class="stock" id="${id}-s" aria-label="Reset ${m.label} to stock">Stock</button></div>
+          <div class="ctl-input"><button class="step" id="${id}-dn" aria-label="Decrease ${m.label}">−</button><div class="ctl-widget"></div><button class="step" id="${id}-up" aria-label="Increase ${m.label}">+</button></div>
           <div class="help">${m.help}<span class="alt" id="${id}-a"></span></div>`;
-        const input = row.querySelector('input');
-        input.addEventListener('input', () => {
-          P.setPath(state.setup, path, parseFloat(input.value));
-          scheduleUpdate(); save();
-        });
-        row.querySelector('.stock').addEventListener('click', () => {
-          P.setPath(state.setup, path, spec.v);
-          input.value = spec.v;
-          scheduleUpdate(); save();
-        });
+        const w = row.querySelector('.ctl-widget');
+        if (state.ctl === 'wheel') buildWheel(w, path, spec, id, m.label);
+        else if (state.ctl === 'dial') buildDial(w, path, spec, id, m.label);
+        else buildSlider(w, path, spec, id);
+        holdRepeat(row.querySelector('#' + id + '-dn'), () => setParam(path, P.getPath(state.setup, path) - spec.step, true));
+        holdRepeat(row.querySelector('#' + id + '-up'), () => setParam(path, P.getPath(state.setup, path) + spec.step, true));
+        const vb = row.querySelector('.ctl-val');
+        vb.addEventListener('click', () => editValue(path, vb));
+        row.querySelector('.stock').addEventListener('click', () => setParam(path, spec.v, true));
       }
-      row.dataset.path = path;
       box.appendChild(row);
     }
     refreshControls();
@@ -274,22 +498,41 @@
         continue;
       }
       const m = metaFor(path, false);
-      const input = row.querySelector('input');
-      if (document.activeElement !== input && parseFloat(input.value) !== v) input.value = v;
-      const pct = ((v - spec.min) / (spec.max - spec.min)) * 100;
-      input.style.setProperty('--pct', pct.toFixed(2) + '%');
+      const frac = (v - spec.min) / (spec.max - spec.min);
       const dec = decimals(spec.step);
       let txt = m.signed ? fmtS(v, dec) : fmt(v, dec);
       let unit = spec.unit;
       if (path.endsWith('swayBar') && v === 0) { txt = 'Off'; unit = ''; }
-      $('#' + id + '-v').innerHTML = `${txt}${unit ? `<small>${unit}</small>` : ''}`;
-      const atStock = Math.abs(v - spec.v) < 1e-9;
-      const sb = $('#' + id + '-s');
-      sb.disabled = atStock;
+      const vb = row.querySelector('.ctl-val');
+      if (vb) vb.innerHTML = `${txt}${unit ? `<small>${unit}</small>` : ''}`;
+      const input = row.querySelector('input[type="range"]');
+      if (input) {
+        if (parseFloat(input.value) !== v) input.value = v;
+        input.style.setProperty('--pct', (frac * 100).toFixed(2) + '%');
+      }
+      const wheel = row.querySelector('.wheel');
+      if (wheel) {
+        wheel.querySelector('.wheel-drum').style.backgroundPosition = `${((v - spec.min) / spec.step * WHEEL_PX).toFixed(1)}px 0`;
+        row.querySelector('.wheel-range i').style.width = (frac * 100).toFixed(1) + '%';
+        wheel.setAttribute('aria-valuenow', v); wheel.setAttribute('aria-valuetext', txt + ' ' + unit);
+      }
+      const dial = row.querySelector('.dial');
+      if (dial) {
+        const a = -DIAL_SWEEP / 2 + DIAL_SWEEP * frac;
+        dial.querySelector('.arc').setAttribute('d', frac > 0.002 ? dialArc(-DIAL_SWEEP / 2, a, 44) : '');
+        dial.querySelector('.knobg').setAttribute('transform', `rotate(${a.toFixed(2)})`);
+        dial.querySelector('.dial-v').textContent = txt;
+        dial.setAttribute('aria-valuenow', v); dial.setAttribute('aria-valuetext', txt + ' ' + unit);
+      }
+      const sb = row.querySelector('.stock');
+      if (sb) sb.disabled = Math.abs(v - spec.v) < 1e-9;
+      row.querySelector('#' + id + '-dn').disabled = v <= spec.min + 1e-9;
+      row.querySelector('#' + id + '-up').disabled = v >= spec.max - 1e-9;
       let alt = '';
       if (path.endsWith('spring')) alt = ` ≈ ${P.units.nmmToLbin(v).toFixed(2)} lb/in · ${P.units.nmmToGfmm(v).toFixed(0)} gf/mm`;
       if (path.endsWith('.toe') && path.startsWith('front')) alt = v > 0 ? ' (toe-in)' : v < 0 ? ' (toe-out)' : '';
-      $('#' + id + '-a').textContent = alt ? ' ' + alt : '';
+      const altEl = row.querySelector('#' + id + '-a');
+      if (altEl) altEl.textContent = alt ? ' ' + alt : '';
     }
   }
 
@@ -305,23 +548,11 @@
     const box = $('#scrub');
     if (!box) return;
     const sc = SCRUB[state.tab];
-    const chips = $('#chips');
     if (!sc) { box.hidden = true; return; }
     box.hidden = false;
     box.innerHTML = `<div class="scrub-row"><label for="scrub-in">${sc.label}</label><b id="scrub-v"></b></div><input type="range" id="scrub-in" step="${sc.step}">`;
     const input = $('#scrub-in');
     input.addEventListener('input', () => { state[sc.key] = parseFloat(input.value); scheduleUpdate(); });
-    if (sc.exaggerate) {
-      chips.hidden = false;
-      chips.innerHTML = `<button class="chip" id="ex-1" aria-pressed="${!state.exaggerate}">True scale</button><button class="chip" id="ex-5" aria-pressed="${state.exaggerate}">Exaggerate body motion</button>`;
-      $('#ex-1').addEventListener('click', () => { state.exaggerate = false; refreshChips(); scheduleUpdate(); save(); });
-      $('#ex-5').addEventListener('click', () => { state.exaggerate = true; refreshChips(); scheduleUpdate(); save(); });
-    }
-  }
-  function refreshChips() {
-    const a = $('#ex-1'), b = $('#ex-5');
-    if (a) a.setAttribute('aria-pressed', String(!state.exaggerate));
-    if (b) b.setAttribute('aria-pressed', String(state.exaggerate));
   }
   function refreshScrub(m) {
     const sc = SCRUB[state.tab], input = $('#scrub-in');
@@ -368,6 +599,42 @@
     return Math.max(260, (d && d.clientWidth) || 360);
   }
 
+  function draw2D(html) {
+    const dg = $('#dg');
+    if (!dg || state.view === '3d') return;
+    dg.innerHTML = html;
+    dg.classList.toggle('multi', dg.querySelectorAll('svg').length > 1);
+  }
+  /** What the live 3D car shows on each topic: the same condition as the drawing. */
+  function liveCondition(m) {
+    const t = state.tab;
+    const solve = (c) => P.solveVehicle(m, c);
+    if (t === 'antisquat') { const res = solve({ ax: state.ax }); return { res, p: 0, E: motionScale(res), loads: true, note: `${state.ax < 0 ? 'braking' : 'accelerating'} ${fmt(Math.abs(state.ax), 2)} g · pitch ${fmtS(res.pitch, 2)}°` }; }
+    if (t === 'droop') { const res = solve({ ay: state.ay }); return { res, p: 0, E: motionScale(res), loads: true, note: `${state.ay.toFixed(2)} g left turn · roll ${fmt(res.roll, 2)}°` }; }
+    if (t === 'camber' || t === 'springs') {
+      const s = state.travel;
+      return { res: { heave: -s, roll: 0, pitch: 0, corners: [0, 1, 2, 3].map(() => ({ travel: s, grams: 0 })) }, p: 0, E: 1, loads: false, note: s === 0 ? 'at ride height' : `wheels ${s > 0 ? 'up' : 'down'} ${fmt(Math.abs(s))} mm` };
+    }
+    if (t === 'ackermann' || t === 'caster') {
+      const input = t === 'ackermann' ? state.steer : 1;
+      const F = m.front, p = F.pDir * F.pMax * input, r = P.steerAt(F, p);
+      const e = r ? [-(r.sL.P[2] - F.static.P[2]), -(r.sR.P[2] - F.static.P[2]), 0, 0] : [0, 0, 0, 0];
+      m.solveState = null;
+      const res = solve({ e });
+      return { res, p, E: 1, loads: t === 'caster', note: r ? `steering ${fmt(r.left, 1)}° / ${fmt(r.right, 1)}°` : '' };
+    }
+    return { res: solve({}), p: 0, E: 1, loads: true, note: 'static, on the setup board' };
+  }
+  function render3D(m) {
+    const dg = $('#dg');
+    if (!dg) return;
+    const c = liveCondition(m);
+    if (!c.res) return;
+    dg.innerHTML = D3.render(m, c, { px: pxWidth(), yaw: state.cam.yaw, elev: state.cam.elev, E: c.E, loads: c.loads });
+    dg.classList.remove('multi');
+    $('#cap').innerHTML = `<span><b>Live 3D</b> · drag to rotate · ${c.note}</span><span>${scaleNote(c.E)}</span>`;
+  }
+
   function update() {
     const m = getModel();
     refreshControls();
@@ -383,6 +650,7 @@
     refreshScrub(m);
     try {
       RENDER[state.tab](m);
+      if (state.view === '3d' && state.tab !== 'sheet') render3D(m);
     } catch (e) {
       const nb2 = $('#notices');
       if (nb2) nb2.innerHTML = `<div class="notice bad">Display error: ${e.message}</div>`;
@@ -402,7 +670,7 @@
   RENDER.camber = function (m) {
     const a = state.axle, C = m[a], s = state.travel;
     const view = D.axleView(m, a, { s, px: pxWidth(), ic: true });
-    $('#dg').innerHTML = view.svg;
+    draw2D(view.svg);
     $('#cap').innerHTML = `<span><b>View from behind</b> · ${a} axle · ride height ${fmt(m.setup[a].rideHeight)} mm</span><span>${s === 0 ? 'static' : (s > 0 ? 'bump ' : 'droop ') + fmt(Math.abs(s)) + ' mm'}</span>`;
     const T = C.table;
     const rcUp = P.frontViewAt(C, 1), rcDn = P.frontViewAt(C, -1);
@@ -428,7 +696,7 @@
   RENDER.springs = function (m) {
     const a = state.axle, C = m[a], s = state.travel;
     const view = D.axleView(m, a, { s, px: pxWidth(), ic: false, emphShock: true });
-    $('#dg').innerHTML = view.svg;
+    draw2D(view.svg);
     $('#cap').innerHTML = `<span><b>View from behind</b> · ${a} axle</span><span>shock ${fmt(C.shockAngle)}° from vertical</span>`;
     const r1 = P.solveVehicle(m, { ay: 1 });
     $('#tiles').innerHTML = tilesHTML([
@@ -449,7 +717,7 @@
 
   RENDER.caster = function (m) {
     const F = m.front;
-    $('#dg').innerHTML = D.casterView(m, { px: pxWidth() });
+    draw2D(D.casterView(m, { px: pxWidth() }));
     $('#cap').innerHTML = `<span><b>Side view</b> · left front wheel</span><span>steering axis in green</span>`;
     const j = P.steeringJacking(m);
     const full = m.steer.full;
@@ -472,7 +740,7 @@
 
   RENDER.ackermann = function (m) {
     const px = pxWidth();
-    $('#dg').innerHTML = D.ackermannOverview(m, state.steer, { px }) + D.linkageView(m, state.steer, { px });
+    draw2D(D.ackermannOverview(m, state.steer, { px }) + D.linkageView(m, state.steer, { px }));
     const st = D.steerState(m, state.steer).r;
     const L = m.wheelbase, Tt = 2 * m.front.trackHalf;
     const ideal = P.idealOuter(st.left, L, Tt);
@@ -498,7 +766,7 @@
 
   RENDER.toe = function (m) {
     const px = pxWidth();
-    $('#dg').innerHTML = D.toeView(m, { px }) + D.axleView(m, 'front', { s: 0, px, ic: true, rod: true }).svg;
+    draw2D(D.toeView(m, { px }) + D.axleView(m, 'front', { s: 0, px, ic: true, rod: true }).svg);
     $('#cap').innerHTML = `<span><b>Top view</b>, front to the right, toe drawn ×5. Below: <b>front axle from behind</b> with the steering links.</span>`;
     const F = m.front, R = m.rear;
     const warnBS = (v) => (Math.abs(v) > 0.06 ? 'warn' : '');
@@ -520,7 +788,7 @@
     const res = P.solveVehicle(m, { ax: state.ax });
     const E = motionScale(res);
     const braking = state.ax < 0;
-    $('#dg').innerHTML = D.sideView(m, res, { px: pxWidth(), E, anti: true, braking, ax: state.ax });
+    draw2D(D.sideView(m, res, { px: pxWidth(), E, anti: true, braking, ax: state.ax }));
     const rearSq = res.rearHeightChange;
     $('#cap').innerHTML = `<span><b>Side view</b> · ${braking ? 'braking' : 'accelerating'} ${fmt(Math.abs(state.ax), 2)} g · rear ${rearSq <= 0 ? 'squats' : 'rises'} ${fmt(Math.abs(rearSq), 2)} mm</span><span>${scaleNote(E)}</span>`;
     const N0r = m.N0.rear, rearLoad = (res.corners[2].N + res.corners[3].N - 2 * N0r) / G * 1000;
@@ -561,7 +829,7 @@
     const a = state.axle;
     const res = P.solveVehicle(m, { ay: state.ay });
     const E = motionScale(res);
-    $('#dg').innerHTML = D.rollView(m, a, res, { px: pxWidth(), E, ay: state.ay });
+    draw2D(D.rollView(m, a, res, { px: pxWidth(), E, ay: state.ay }));
     $('#cap').innerHTML = `<span><b>${a === 'front' ? 'Front' : 'Rear'} axle from behind</b> · left turn</span><span>${scaleNote(E)}</span>`;
     const c = res.corners;
     const key = 'droop:' + modelKey;
@@ -602,7 +870,7 @@
   };
 
   RENDER.car = function (m) {
-    $('#dg').innerHTML = D.sideView(m, null, { px: pxWidth(), anti: false });
+    draw2D(D.sideView(m, null, { px: pxWidth(), anti: false }));
     $('#cap').innerHTML = `<span><b>Side view</b> · generic 190 mm touring car</span><span>CG ${fmt(m.h)} mm</span>`;
     const g = (N) => Math.round(N / G * 1000);
     $('#tiles').innerHTML = tilesHTML([

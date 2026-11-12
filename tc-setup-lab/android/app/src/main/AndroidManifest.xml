@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- No INTERNET permission: the whole app ships inside the APK and runs offline. -->
+    <!-- Short haptic ticks while turning the thumbwheel and dial adjusters. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="true"

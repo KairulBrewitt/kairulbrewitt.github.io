@@ -317,3 +317,103 @@ textarea {
 .foot p { margin: 0 0 6px; max-width: 70ch; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ---------- live view: pinned panel, view switch, 3D ---------- */
+.viewbar { display: flex; align-items: center; gap: 6px; padding: 8px 10px 0; flex-wrap: wrap; }
+.vgap { flex: 1; }
+.vseg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--surface); }
+.vseg button {
+  border: 0; background: transparent; padding: 5px 13px; font-size: 13.5px; font-weight: 600; color: var(--muted);
+  min-height: 32px;
+}
+.vseg button + button { border-left: 1px solid var(--line); }
+.vseg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.drawing.pinned {
+  position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--tabs-h, 52px)); z-index: 4;
+  box-shadow: 0 14px 22px -16px rgba(0, 0, 0, 0.75);
+}
+.drawing.pinned .dg { max-height: 31vh; }
+.drawing.pinned #dg.multi .dg { max-height: 20vh; }
+.drawing.pinned .cap { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 6px; }
+.drawing.pinned .cap span + span::before { content: " · "; }
+.drawing.pinned .scrub { padding-bottom: 8px; }
+.dg-wrap { position: relative; }
+#dg.orbit { touch-action: none; cursor: grab; }
+#dg.orbit:active { cursor: grabbing; }
+.v3 { position: absolute; left: 8px; bottom: 6px; display: flex; gap: 4px; flex-wrap: wrap; }
+.v3 button {
+  font-size: 12px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--muted); min-height: 26px;
+}
+.v3 button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.dg3 .gridline3 { stroke: var(--grid); stroke-width: 1; }
+.dg3 .plate3 { fill: var(--surface-2); stroke: var(--ink); stroke-width: 1.2; }
+.dg3 .tower3 { fill: var(--surface-2); stroke: var(--faint); stroke-width: 1; opacity: 0.85; }
+.dg3 .arm3 { fill: color-mix(in srgb, var(--arm) 45%, var(--surface)); stroke: var(--arm); stroke-width: 1.2; stroke-linejoin: round; }
+.dg3 .link3 { stroke: var(--arm); stroke-width: 2.6; stroke-linecap: round; }
+.dg3 .rod3, .dg3 .steer3 { stroke: var(--rod); stroke-width: 2.2; stroke-linecap: round; }
+.dg3 .shock3 { stroke: var(--blue); stroke-width: 4; stroke-linecap: round; }
+.dg3 .hub3 { fill: var(--surface-2); stroke: var(--ink); stroke-width: 1.1; stroke-linejoin: round; }
+.dg3 .tread3 { fill: var(--tyre); stroke: var(--faint); stroke-width: 0.7; stroke-linejoin: round; }
+.dg3 .side3 { fill: var(--tyre); stroke: var(--ink); stroke-width: 1.2; }
+.dg3 .rim3 { fill: var(--rim); stroke: var(--ink); stroke-width: 0.9; }
+.dg3 .cg3 { fill: var(--ink); stroke: var(--surface); stroke-width: 1.5; }
+.dg3 .loadbar3 { stroke: var(--accent); opacity: 0.85; }
+.dg3 .loadbar3.bad { stroke: var(--bad); }
+
+/* ---------- adjusters ---------- */
+.adjust-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; }
+.adjust-head .section-h { margin: 0; }
+.ctl-input { display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; gap: 8px; align-items: center; }
+.ctl-widget { min-width: 0; }
+.step {
+  height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+  font-size: 26px; font-weight: 500; line-height: 1; padding: 0; touch-action: manipulation;
+  -webkit-user-select: none; user-select: none; color: var(--ink);
+}
+.step:active:not([disabled]) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.step[disabled] { opacity: 0.35; }
+.ctl-val {
+  border: 0; background: transparent; padding: 2px 4px; border-radius: 6px;
+  border-bottom: 1px dashed var(--faint);
+}
+.ctl-val:hover { background: var(--accent-soft); }
+.ctl-edit {
+  width: 6.2em; font-family: var(--font-display); font-weight: 700; font-size: 20px; text-align: right;
+  background: var(--surface-2); color: var(--ink); border: 1px solid var(--accent); border-radius: 8px; padding: 3px 8px;
+}
+/* thumbwheel: a ribbed drum you roll sideways, one rib per step */
+.wheel {
+  position: relative; height: 46px; border-radius: 12px; overflow: hidden; touch-action: none; cursor: ew-resize;
+  border: 1px solid var(--line); background: var(--surface-2); outline-offset: 2px;
+}
+.wheel-drum {
+  position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(90deg, var(--muted) 0 2px, transparent 2px 10px);
+  opacity: 0.55;
+}
+.wheel::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, var(--surface) 0%, transparent 30%, transparent 70%, var(--surface) 100%);
+}
+.wheel-mark {
+  position: absolute; left: 50%; top: 5px; bottom: 5px; width: 4px; margin-left: -2px; border-radius: 2px;
+  background: var(--accent); z-index: 1;
+}
+.wheel.active { border-color: var(--accent); }
+.wheel-range { height: 3px; border-radius: 2px; background: var(--surface-2); margin-top: 6px; overflow: hidden; }
+.wheel-range i { display: block; height: 100%; background: var(--accent); }
+/* dial: turn it like a knob */
+.dial { position: relative; width: 136px; height: 136px; margin: 0 auto; touch-action: none; cursor: grab; border-radius: 50%; }
+.dial svg { display: block; width: 100%; height: 100%; }
+.dial .track { stroke: var(--surface-2); stroke-width: 8; fill: none; stroke-linecap: round; }
+.dial .arc { stroke: var(--accent); stroke-width: 8; fill: none; stroke-linecap: round; }
+.dial .tick { stroke: var(--faint); stroke-width: 1; }
+.dial .tick.major { stroke: var(--muted); stroke-width: 1.6; }
+.dial .knob { fill: var(--surface-2); stroke: var(--line); stroke-width: 1.5; }
+.dial .mark { stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
+.dial.active .knob { stroke: var(--accent); }
+.dial-v {
+  position: absolute; left: 0; right: 0; top: 50%; transform: translateY(18px); text-align: center;
+  font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--muted); pointer-events: none;
+}
