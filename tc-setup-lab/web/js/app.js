@@ -167,8 +167,9 @@
   }
   function applyTheme() {
     const b = $('#theme');
-    if (state.theme === 'auto') document.documentElement.removeAttribute('data-theme');
-    else document.documentElement.setAttribute('data-theme', state.theme);
+    // AUTO leaves the page theme alone (the host or the system decides); only undo our own override
+    if (state.theme === 'auto') { if (applyTheme.set) document.documentElement.removeAttribute('data-theme'); applyTheme.set = false; }
+    else { document.documentElement.setAttribute('data-theme', state.theme); applyTheme.set = true; }
     b.textContent = state.theme === 'auto' ? 'AUTO' : state.theme === 'dark' ? 'DARK' : 'LIGHT';
     b.setAttribute('aria-label', 'Theme: ' + state.theme);
   }
