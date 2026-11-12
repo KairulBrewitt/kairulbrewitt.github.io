@@ -67,8 +67,9 @@ android/        native Android shell that ships web/ inside the APK
   analytic checks and a 250-setup fuzz).
 - Android: open `android/` in Android Studio, or
   `cd tc-setup-lab/android && ./gradlew assembleDebug` with the Android SDK
-  installed. The APK lands in `app/build/outputs/apk/debug/`. The GitHub
-  Actions workflow `TC Setup Lab` builds the same APK on every change.
+  installed. The APK lands in `app/build/outputs/apk/debug/`.
+- CI: copy `ci/tc-setup-lab.yml` to `.github/workflows/` to have GitHub Actions
+  run the tests and build the APK (downloadable from the run) on every change.
 
 The Android app is a single `WebView` activity that serves `web/` from the APK
 with `WebViewAssetLoader`; it needs no network permission. Release builds need

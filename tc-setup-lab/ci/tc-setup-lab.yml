@@ -1,4 +1,5 @@
 # Builds TC Setup Lab: runs the physics tests and produces a debug APK.
+# To enable, copy this file to .github/workflows/tc-setup-lab.yml
 # Only runs when files of the tool change, so the Pages site is unaffected.
 name: TC Setup Lab
 
