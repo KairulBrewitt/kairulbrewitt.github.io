@@ -220,7 +220,8 @@ test('RC Maker SP2 kit: reproduces the published kit numbers', () => {
   close(m.setup.front.swayBar, 1.1, 1e-9); close(m.setup.rear.swayBar, 1.1, 1e-9);
   assert.equal(m.setup.car.frontDiff, 'spool');
   assert.ok(Math.abs(m.front.toeGain) < 0.02, 'front bump steer near zero with kit spacers');
-  assert.ok(m.front.rcHeight > 0 && m.rear.rcHeight > m.front.rcHeight, 'roll centres above ground, rear higher');
+  assert.ok(Math.abs(m.front.rcHeight) < 10 && m.rear.rcHeight >= m.front.rcHeight, 'roll centres near the ground, rear at least as high');
+  close(m.front.Lcl, 54, 3, 'upper arm ball-to-ball length, consistent with the manual’s ~57.5 mm overall arm');
 });
 
 test('RC Maker SP2: rear toe link sets toe and keeps its length through travel', () => {
@@ -247,6 +248,20 @@ test('RC Maker SP2: caster comes from the upper balls, not from the hinge-pin an
   close(a.front.caster, b.front.caster, 0.05, 'front caster unchanged by kick-up');
   // on the C-hub car kick-up does add to caster
   assert.ok(build((s) => { s.front.kickup = 3; }).front.caster > build().front.caster + 2.9);
+});
+
+test('RC Maker SP2: pushrod and rocker drive the shock, lowest hole stiffest', () => {
+  const m = buildSP2();
+  const F = m.front;
+  for (let s = -3; s <= 4; s += 0.5) {
+    const st = F.stateAtTravel(s, 0);
+    close(len(sub(st.rocker.push, st.rocker.ball)), P.HW_SP2.front.rocker.pushrod, 1e-8, 'pushrod length');
+  }
+  assert.ok(F.mr > 0.3, 'shock compresses in bump');
+  const mr = ['low', 'mid', 'high'].map((h) => buildSP2((s) => { s.front.rocker = h; }).front.mr);
+  assert.ok(mr[0] > mr[1] && mr[1] > mr[2], 'manual: lowest rocker hole is the stiffest');
+  assert.ok(P.applies('front.rocker', P.stockSetup('sp2')) && !P.applies('front.rocker', P.stockSetup('generic')));
+  assert.ok(!P.applies('front.shockArm', P.stockSetup('sp2')));
 });
 
 test('cars: stock values, parameter availability and switching', () => {

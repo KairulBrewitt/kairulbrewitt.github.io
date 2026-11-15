@@ -186,31 +186,50 @@
   // shaped to that layout (the steering arm is calibrated to the manual's
   // 27 deg inside / 17 deg outside kit lock, see CARS.sp2).
   const HW_SP2 = {
+    // Hardpoints read off the manual's CAD drawings (top view scaled by the
+    // 257 mm wheelbase, front view by the 190 mm width): outer arm balls at
+    // +-69.5 mm, outer ball swept 12.5 mm toward the axle, pushrod ball 38.5 mm
+    // out on the arm, upper arms high on the upper bulkheads sweeping back to
+    // the hub top, laid-down shocks under rockers on the bulkheads.
     front: {
-      innerY: 17, armLen: 52,
-      upperOnKingpin: true,
-      kpLow: [0, 0, 0],    // kingpin starts at the lower ball
-      kpLen: 21,           // lower ball to upper ball
-      wheel: [0, 14.52, 19.5],   // sets the 190 mm overall width with 4.0 mm hexes and 24 mm tyres
+      innerY: 17, armLen: 52.5, armU: 12.5,   // outer ball 12.5 mm forward of the pivot centre
+      cupSpan: 23,                            // distance between the two inner ball cups
+      upperOnKingpin: true, upperInX: -22,    // upper-arm inner ball sits behind the hub top
+      kpLow: [0, 0, 0], kpLen: 36,            // lower ball to upper ball (both arm ends ~41-42 mm up in the front view)
+      wheel: [0, 14.05, 20.5],                // wheel centre from the lower ball; y sets the 190 mm width
       ballZ: 9,
-      shockArmZ: 3, shockTowerZ: 44,   // pushrod + rocker modelled as an equivalent strut
-      arbArm: 24, arbArmZ: 1.5, arbLever: 16, arbSpan: 62,
-      bellcrank: 15, plateX: -14, plateZ: 14.5,  // rack ball height: ~zero bump steer with the kit 0.5 mm spacers
-      kpi: 4,
+      arbArm: 13.5, arbArmU: 7.7, arbArmZ: 2, arbLever: 14, arbSpan: 60,
+      bellcrank: 15, plateX: -14, plateZ: 15.1,  // rack ball height: ~zero bump steer with the kit 0.5 mm spacers
+      kpi: 10,
+      rocker: {
+        dx: 6.4, y: 16, z: 25,               // pivot in line with the pushrod ball (dx from the arm pivot centre), axis fore-aft
+        holeDir: [0, 0.84, 0.55], holes: { low: 7.5, mid: 9.0, high: 10.5 },   // long front rocker
+        shockArm: [0, -2.4, -15.4],          // shock eye relative to the pivot
+        mountY: 44, mountZ: 11.8,            // shock body pinned to the bulkhead mount (laid down)
+        ball: [6.4, 38.5, 3],                // pushrod ball on the arm (u, v, w)
+        pushrod: 38.7,                       // short front pushrod (rocker at its design angle at 5 mm ride height)
+      },
     },
     rear: {
-      innerY: 17, armLen: 52,
-      upperOnKingpin: true,
-      kpLow: [0, 0, 0], kpLen: 21,
-      wheel: [0, 14.68, 19.5],
+      innerY: 17, armLen: 52.5, armU: -12.5, cupSpan: 23,
+      upperOnKingpin: true, upperInX: 22,
+      kpLow: [0, 0, 0], kpLen: 36,
+      wheel: [0, 14.22, 20.5],
       toeLink: true,
-      steerArm: [-12, -6, 8],          // rear steering-arm ball, relative to the lower ball
-      toeLinkIn: [-16, 22, 14.2],      // toe-link inner ball (x from rear axle, y, z): mild toe-in in bump
-      shockArmZ: 3, shockTowerZ: 44,
-      arbArm: 24, arbArmZ: 1.5, arbLever: 16, arbSpan: 62,
-      kpi: 4,
+      steerArm: [-12, -6, 8],
+      toeLinkIn: [-16, 22, 14.8],             // toe-link inner ball: mild toe-in in bump
+      arbArm: 13.5, arbArmU: -7.7, arbArmZ: 2, arbLever: 14, arbSpan: 60,
+      kpi: 10,
+      rocker: {
+        dx: -6.4, y: 16, z: 25,
+        holeDir: [0, 0.84, 0.55], holes: { low: 6.0, mid: 7.5, high: 9.0 },    // short rear rocker
+        shockArm: [0, -2.4, -15.4],
+        mountY: 44, mountZ: 11.8,
+        ball: [-6.4, 38.5, 3],
+        pushrod: 39.3,                       // long rear pushrod
+      },
     },
-    chassis: { halfWidth: 45, front: 46, rear: 22, thick: 2.2 },
+    chassis: { halfWidth: 40.3, front: 24, rear: 22, thick: 2.2 },
     unsprungPerCorner: 48,
   };
   const HW = HW_GENERIC; // kept for older callers
@@ -228,12 +247,15 @@
     'car.tireRate':    { v: 10,   min: 4,    max: 25,   step: 0.5,  unit: 'N/mm' },
     'car.frontDiff':   { v: 'spool', options: ['spool', 'oneway', 'diff'] },
     'car.model':       { v: 'sp2', options: ['sp2', 'generic'] },
+    'car.chassis':     { v: 'carbon', options: ['carbon', 'alu', 'steel'] },
+    'front.rocker':    { v: 'low', options: ['low', 'mid', 'high'] },
+    'rear.rocker':     { v: 'low', options: ['low', 'mid', 'high'] },
 
     'front.rideHeight':  { v: 5.0,  min: 3.5,  max: 8.0,  step: 0.1,  unit: 'mm' },
     'front.camber':      { v: -1.5, min: -4.0, max: 1.0,  step: 0.1,  unit: '°' },
     'front.toe':         { v: -0.5, min: -3.0, max: 2.0,  step: 0.1,  unit: '°' },
     'front.droop':       { v: 2.0,  min: 0.5,  max: 7.0,  step: 0.1,  unit: 'mm' },
-    'front.linkInZ':     { v: 27.0, min: 22,   max: 38,   step: 0.5,  unit: 'mm' },
+    'front.linkInZ':     { v: 27.0, min: 22,   max: 48,   step: 0.5,  unit: 'mm' },
     'front.linkInY':     { v: 20.0, min: 12,   max: 32,   step: 0.5,  unit: 'mm' },
     'front.linkOutSpacer': { v: 1.0, min: 0,   max: 4,    step: 0.5,  unit: 'mm' },
     'front.pivotZ':      { v: 6.5,  min: 5.0,  max: 9.0,  step: 0.25, unit: 'mm' },
@@ -257,7 +279,7 @@
     'rear.camber':      { v: -2.0, min: -4.0, max: 1.0,  step: 0.1,  unit: '°' },
     'rear.toe':         { v: 2.5,  min: 0.0,  max: 4.5,  step: 0.25, unit: '°' },
     'rear.droop':       { v: 2.5,  min: 0.5,  max: 7.0,  step: 0.1,  unit: 'mm' },
-    'rear.linkInZ':     { v: 26.0, min: 22,   max: 38,   step: 0.5,  unit: 'mm' },
+    'rear.linkInZ':     { v: 26.0, min: 22,   max: 48,   step: 0.5,  unit: 'mm' },
     'rear.linkInY':     { v: 20.0, min: 12,   max: 32,   step: 0.5,  unit: 'mm' },
     'rear.linkOutSpacer': { v: 1.0, min: 0,   max: 4,    step: 0.5,  unit: 'mm' },
     'rear.pivotZ':      { v: 6.5,  min: 5.0,  max: 9.0,  step: 0.25, unit: 'mm' },
@@ -282,15 +304,15 @@
     sp2: {
       id: 'sp2', name: 'RC Maker SP2', kitName: 'SP2 kit setup', hw: HW_SP2,
       setup: {
-        car: { mass: 1380, frontPct: 49, cgHeight: 21, wheelbase: 257, tireDia: 64, tireWidth: 24, tireRate: 10, frontDiff: 'spool', model: 'sp2' },
+        car: { mass: 1380, frontPct: 49, cgHeight: 21, wheelbase: 257, tireDia: 64, tireWidth: 24, tireRate: 10, frontDiff: 'spool', model: 'sp2', chassis: 'carbon' },
         front: {
-          rideHeight: 5.0, camber: -1.5, toe: 0.0, droop: 3.0, linkInZ: 25.5, linkInY: 20.5, linkOutSpacer: 1.0, pivotZ: 7.0,
-          kickup: 0.0, caster: 4.0, kpi: 4.0, wheelSpacer: 0.0, spring: 0.45, shockArm: 38, shockTowerY: 30, swayBar: 1.1,
-          ackInset: 10.0, armLength: 12.5, plateY: 19.0, plateDX: 0.0, ballSpacer: 0.5, plateSpacer: 0.5, lock: 27,
+          rideHeight: 5.0, camber: -1.5, toe: 0.0, droop: 3.0, linkInZ: 41.0, linkInY: 19.5, linkOutSpacer: 1.0, pivotZ: 7.0,
+          kickup: 0.0, caster: 4.0, kpi: 10.0, wheelSpacer: 0.0, spring: 0.25, swayBar: 1.1, rocker: 'low',
+          ackInset: 8.0, armLength: 12.5, plateY: 19.0, plateDX: 0.0, ballSpacer: 0.5, plateSpacer: 0.5, lock: 27,
         },
         rear: {
-          rideHeight: 5.0, camber: -2.0, toe: 2.0, droop: 4.0, linkInZ: 25.0, linkInY: 21.0, linkOutSpacer: 1.0, pivotZ: 7.5,
-          antiSquat: 2.0, caster: -2.5, ballSpacer: 0.5, wheelSpacer: 0.0, spring: 0.50, shockArm: 38, shockTowerY: 30, swayBar: 1.1,
+          rideHeight: 5.0, camber: -2.0, toe: 2.0, droop: 4.0, linkInZ: 41.0, linkInY: 19.5, linkOutSpacer: 1.0, pivotZ: 7.5,
+          antiSquat: 2.0, caster: -2.5, ballSpacer: 0.5, wheelSpacer: 0.0, spring: 0.27, swayBar: 1.1, rocker: 'low',
         },
       },
       src: {
@@ -312,12 +334,17 @@
         'front.plateSpacer': ['kit', 'Kit: 0.5 mm shims (2056) under the steering-rack balls.'],
         'front.lock': ['kit', 'Kit lock is roughly 27° inside and 17° outside. Optional 5.0 and 6.0 mm stoppers reduce it.'],
         'front.ackInset': ['cal', 'Not published. Set so the kit lock gives the manual’s 27° inside / 17° outside.'],
+        'front.armLength': ['est', 'Not published.'],
         'front.spring': ['est', 'Kit: 4.5-coil XS spring. RC Maker does not publish its rate.'],
         'rear.spring': ['est', 'Kit: 4.25-coil XS spring (fewer coils, stiffer). Rate not published.'],
         'front.droop': ['est', 'Kit: 23.6 mm on an axle-based droop gauge. The app uses wheel travel below ride height; the kit runs 1 mm more droop at the rear.'],
         'rear.droop': ['est', 'Kit: 22.6 mm on an axle-based droop gauge (1 mm more droop than the front).'],
-        'front.shockArm': ['est', 'Pushrod in the lowest rocker hole (kit, stiffest). The pushrod and rocker are modelled as an equivalent strut.'],
-        'rear.shockArm': ['est', 'Pushrod in the lowest rocker hole (kit, stiffest). The pushrod and rocker are modelled as an equivalent strut.'],
+        'front.rocker': ['kit', 'Kit: pushrod in the lowest rocker hole (stiffest). The middle and top holes are softer.'],
+        'rear.rocker': ['kit', 'Kit: pushrod in the lowest rocker hole (stiffest). The middle and top holes are softer.'],
+        'car.chassis': ['kit', 'Kits come with a 2.2 mm carbon, 1.5 mm aluminium or 1.2 mm spring-steel chassis.'],
+        'front.linkInZ': ['est', 'From the manual’s front-view drawing: both ends of the upper arm sit about 41–42 mm above the chassis.'],
+        'rear.linkInZ': ['est', 'From the manual’s front-view drawing: both ends of the upper arm sit about 41–42 mm above the chassis.'],
+        'front.kpi': ['est', 'Read off the manual’s front-view drawing (about 10°).'],
       },
       info: [
         ['Chassis options', '2.2 mm carbon, 1.5 mm aluminium (85 g, with brass centre weights) or 1.2 mm spring steel (137 g)'],
@@ -356,6 +383,8 @@
   function applies(path, setup) {
     const hw = hwFor(setup);
     if (path === 'rear.caster' || path === 'rear.ballSpacer') return !!hw.rear.toeLink;
+    if (/\.rocker$/.test(path) || path === 'car.chassis') return !!hw.front.rocker;
+    if (/\.(shockArm|shockTowerY)$/.test(path)) return !hw.front.rocker;
     return true;
   }
 
@@ -401,11 +430,19 @@
     const e2 = cross(e3, a);
     const M = fromCols(a, e2, e3);
     const Pin = [x0, H.innerY, A.pivotZ];
-    const oLoc = [0, H.armLen, 0];
-    const U = [x0, A.linkInY, A.linkInZ];            // camber link inner ball
-    const shockTop = [x0, A.shockTowerY, H.shockTowerZ];
+    const oLoc = [H.armU || 0, H.armLen, 0];
+    const U = [x0 + (H.upperInX || 0), A.linkInY, A.linkInZ];   // upper link inner ball
+    // pushrod + rocker (SP2) or a plain strut from the arm to the tower (generic)
+    const RK = H.rocker ? {
+      pivot: [x0 + H.rocker.dx, H.rocker.y, H.rocker.z],
+      push0: mul(norm(H.rocker.holeDir), H.rocker.holes[A.rocker] || H.rocker.holes.low),
+      shock0: H.rocker.shockArm.slice(),
+      ball: H.rocker.ball.slice(),
+      Lp: H.rocker.pushrod,
+    } : null;
+    const shockTop = RK ? [x0 + H.rocker.dx, H.rocker.mountY, H.rocker.mountZ] : [x0, A.shockTowerY, H.shockTowerZ];
     const shockLoc = [0, A.shockArm, H.shockArmZ];   // arm frame, relative to inner pin
-    const arbLoc = [0, H.arbArm, H.arbArmZ];
+    const arbLoc = [H.arbArmU || 0, H.arbArm, H.arbArmZ];
     const sLoc = [0, 1, 0];
 
     let kpLoc = [0, 0, 0], kLoc = [0, 0, 1], ballRel = null, plate0 = null;
@@ -458,14 +495,25 @@
       const s = mv(Rb, sLoc);
       const B = add(O, mv(Rh, Bloc));
       const ball = steered ? add(kp, mv(Rb, ballRel)) : null;
-      const shockLow = add(Pin, mv(Ra, mv(M, shockLoc)));
+      let shockLow, rocker = null;
+      if (RK) {
+        // rocker angle from the fixed-length pushrod (closed form, rotation about the fore-aft pivot)
+        const ballW = add(Pin, mv(Ra, mv(M, RK.ball)));
+        const ang = solveRotDist([1, 0, 0], RK.pivot, RK.push0, ballW, RK.Lp, 0);
+        if (!isFinite(ang)) return null;
+        const Rr = rotM([1, 0, 0], ang);
+        shockLow = add(RK.pivot, mv(Rr, RK.shock0));
+        rocker = { ang, pivot: RK.pivot, push: add(RK.pivot, mv(Rr, RK.push0)), shock: shockLow, ball: ballW, Rr };
+      } else {
+        shockLow = add(Pin, mv(Ra, mv(M, shockLoc)));
+      }
       const arbPt = add(Pin, mv(Ra, mv(M, arbLoc)));
       // lowest point of the wheel's centre-plane circle = contact patch
       const dn = norm(add([0, 0, -1], mul(s, s[2])));
       const P = add(W, mul(dn, Rt));
       const fwd = norm(cross(s, [0, 0, 1]));
       return {
-        th, psi, del, O, Rh, Rb, kp, kW, W, s, B, ball, P, shockLow, arbPt,
+        th, psi, del, O, Rh, Rb, kp, kW, W, s, B, ball, P, shockLow, arbPt, rocker, armM: mm(Ra, M),
         camber: -Math.asin(clamp(s[2], -1, 1)) * RAD,
         toe: Math.atan2(s[0], s[1]) * RAD,        // + = toe-in (left wheel)
         heading: Math.atan2(fwd[1], fwd[0]) * RAD, // + = pointing left
@@ -523,12 +571,14 @@
     const th0 = findRoot((th) => {
       const r = innerAngles(th);
       if (!r) return NaN;
-      return C.pose(th, r[0], r[1]).P[2] + target.h;
+      const ps = C.pose(th, r[0], r[1]);
+      return ps ? ps.P[2] + target.h : NaN;
     }, 0, 0.02, -1.2, 1.2);
     if (!isFinite(th0)) { C.ok = false; C.error = 'Ride height cannot be reached with this arm geometry.'; return C; }
     const ang0 = innerAngles(th0);
     C.th0 = th0; C.psi0 = ang0[0]; C.del0 = ang0[1];
     const S0 = C.pose(th0, C.psi0, C.del0);
+    if (!S0) { C.ok = false; C.error = 'The pushrod cannot reach the rocker at this ride height.'; return C; }
     C.Lcl = len(sub(S0.B, U));
     C.Ltr = steered ? len(sub(S0.ball, C.plateBall(0))) : NaN;
     C.static = S0;
@@ -653,12 +703,17 @@
     const lock = F.A.lock;
     const pmax = 0.95 * F.Hw.bellcrank;
     const f = (p) => { const r = steerAt(F, F.pDir * p); return r ? r.left - lock : NaN; };
-    let p = findRoot(f, 4, 0.5, 0, pmax, 1e-9);
-    F.lockReached = isFinite(p);
-    if (!isFinite(p)) { // cannot reach requested lock: use the furthest assembling travel
-      p = 0;
-      for (let q = 0; q <= pmax; q += 0.05) if (isFinite(f(q))) p = q; else break;
+    // Scan outward from centre (quick racks lock out within a few mm), then bisect.
+    let p = NaN, prev = 0, reach = 0;
+    for (let q = 0.05; q <= pmax + 1e-9; q += 0.05) {
+      const v = f(q);
+      if (!isFinite(v)) break;
+      reach = q;
+      if (v >= 0) { p = findRoot(f, (prev + q) / 2, (q - prev) / 2, prev, q, 1e-9); break; }
+      prev = q;
     }
+    F.lockReached = isFinite(p);
+    if (!isFinite(p)) p = reach;  // cannot reach the requested lock: use the furthest assembling travel
     F.pMax = p;
     const L = model.wheelbase, T = 2 * F.trackHalf;
     const sweep = [];
@@ -838,8 +893,11 @@
     const hRA = model.rollAxisAtCg;
 
     function corner(T, N0, cc, sOther, Kb, fy, fx, D) {
-      const g = (s) => T.at(s, 'Fs') + Kb * (s - sOther) + mug - (fy * T.at(s, 'qy') + fx * T.at(s, 'qx')) - (N0 + kt * (cc - s));
-      const lo = -D, hi = T.sHi;
+      // past the end of the travel table the arm meets a stiff bump stop (keeps the force continuous)
+      const K_STOP = 60, W_STOP = 1; // N/mm, mm over which the stop builds up (C1-continuous)
+      const stop = (s) => { const d = s - T.sHi; return d <= 0 ? 0 : d < W_STOP ? K_STOP * d * d / (2 * W_STOP) : K_STOP * (d - W_STOP / 2); };
+      const g = (s) => T.at(s, 'Fs') + stop(s) + Kb * (s - sOther) + mug - (fy * T.at(s, 'qy') + fx * T.at(s, 'qx')) - (N0 + kt * (cc - s));
+      const lo = -D, hi = T.sHi + 8;
       if (g(lo) >= 0) return { s: lo, N: Math.max(0, N0 + kt * (cc - lo)), stop: true };
       if (g(hi) <= 0) return { s: hi, N: Math.max(0, N0 + kt * (cc - hi)), bottom: true };
       let a = lo, b = hi, fa = g(a), fb = g(b), side = 0, s = 0;
@@ -853,6 +911,10 @@
       return { s, N: Math.max(0, N0 + kt * (cc - s)) };
     }
 
+    const chs = model.hw.chassis, hFront = model.setup.front.rideHeight, hRide = model.setup.rear.rideHeight;
+    const plateCorners = [[model.a + chs.front, chs.halfWidth], [model.a + chs.front, -chs.halfWidth], [-model.b - chs.rear, chs.halfWidth], [-model.b - chs.rear, -chs.halfWidth],
+      [0, chs.halfWidth], [0, -chs.halfWidth]];
+    const C_K = 80, C_W = 0.3; // N/mm contact stiffness, mm build-up
     function evalPose(X, keep) {
       const dh = X[0], phi = X[1] / 1000, th = X[2] / 1000;
       const out = [];
@@ -879,11 +941,19 @@
         sumNx += (L.N + Rr.N) * ax.x;
         out.push(L, Rr);
       }
+      // chassis plate touching the track: stiff contact at the plate's corners (the car rides on its chassis)
+      let plateN = 0;
+      for (const [xc, yc] of plateCorners) {
+        const pen = -(lerp(hRide, hFront, (xc + model.b) / model.wheelbase) + dh + phi * yc + th * xc);
+        if (pen <= 0) continue;
+        const Fc = pen < C_W ? C_K * pen * pen / (2 * C_W) : C_K * (pen - C_W / 2);
+        plateN += Fc; sumN += Fc; sumNy += Fc * yc; sumNx += Fc * xc;
+      }
       const hcg = model.h + dh * model.mSprung / m;
       const r1 = sumN - m * G;
       const r2 = (sumNy + model.mSprung * G * (hcg - hRA) * phi + m * ayN * hcg) / 100;
       const r3 = (sumNx + model.mSprung * G * (hcg - model.setup.front.rideHeight) * th + m * axN * hcg) / 100;
-      return keep ? { r: [r1, r2, r3], corners: out } : [r1, r2, r3];
+      return keep ? { r: [r1, r2, r3], corners: out, plateN } : [r1, r2, r3];
     }
 
     const nrm = (r) => Math.hypot(r[0], r[1], r[2]);
@@ -916,6 +986,20 @@
       if (!improved) break;
     }
     if (nrm(r) < 1e-4) converged = true;
+    if (!converged && !c._ramp && (c.ay || c.ax || c.e.some((v) => v))) {
+      // Kinks (droop stops, lifted wheels) can stall Newton from a cold start:
+      // ramp the load up in steps, each warm-started from the previous one.
+      // adaptive steps: grow after a success, halve after a failure
+      model.solveState = null;
+      let f0 = 0, df = 1 / 8, out = null, guard = 0;
+      while (f0 < 1 - 1e-12 && guard++ < 80) {
+        const f1 = Math.min(1, f0 + df), saved = model.solveState;
+        const o = solveVehicle(model, { ay: c.ay * f1, ax: c.ax * f1, e: c.e.map((v) => v * f1), _ramp: true });
+        if (o && o.converged) { f0 = f1; out = o; df = Math.min(df * 1.5, 0.25); }
+        else { model.solveState = saved; df /= 2; if (df < 1 / 1024) { out = null; break; } }
+      }
+      if (out && f0 >= 1 - 1e-12) return out;
+    }
     const res = evalPose(X, true);
     model.solveState = converged ? X.slice() : null;
 
@@ -926,7 +1010,7 @@
       const camberChassis = T.at(cr.s, 'camber');
       return {
         name: names[i], N: cr.N, grams: cr.N / G * 1000, travel: cr.s,
-        onStop: !!cr.stop && cr.N > 1e-9, lifted: cr.N <= 1e-9, bottomed: !!cr.bottom,
+        onStop: !!cr.stop && cr.N > 1e-9, lifted: cr.N <= 1e-9, bottomed: !!cr.bottom || cr.s > T.sHi,
         camberChassis,
         camberGround: camberChassis + (left ? -phiDeg : phiDeg),
         toe: T.at(cr.s, 'toe'),
@@ -952,6 +1036,7 @@
       minPlateHeight: minPlate,
       minPlateStatic,
       scrape: minPlate < 0,
+      chassisGrams: res.plateN / G * 1000,      // load carried by the chassis plate on the track
       frontHeightChange: dh + th * model.a,
       rearHeightChange: dh - th * model.b,
     };

@@ -54,6 +54,14 @@
       label: 'Car',
       options: { sp2: ['RC Maker SP2', 'kit setup'], generic: ['Generic TC', 'C-hub baseline'] },
     },
+    rocker: {
+      label: 'Rocker hole for the pushrod',
+      options: { low: ['Lowest', 'kit · stiffest'], mid: ['Middle', 'softer'], high: ['Highest', 'softest'] },
+    },
+    chassis: {
+      label: 'Chassis plate',
+      options: { carbon: ['Carbon', '2.2 mm'], alu: ['Aluminium', '1.5 mm'], steel: ['Spring steel', '1.2 mm'] },
+    },
     frontDiff: {
       label: 'Front differential',
       options: { spool: ['Spool', 'brakes the front'], oneway: ['One-way', 'front freewheels'], diff: ['Gear diff', 'brakes the front'] },
@@ -104,9 +112,9 @@
     { id: 'droop', name: 'Droop', title: 'Droop & roll', axle: true, axleIsView: true,
       controls: () => ['front.droop', 'rear.droop', 'front.rideHeight', 'rear.rideHeight'] },
     { id: 'springs', name: 'Springs', title: 'Springs & bars', axle: true,
-      controls: (a) => [a + '.spring', a + '.shockArm', a + '.shockTowerY', a + '.swayBar'] },
+      controls: (a) => [a + '.spring', a + '.rocker', a + '.shockArm', a + '.shockTowerY', a + '.swayBar'] },
     { id: 'car', name: 'Car', title: 'Car & tyres',
-      controls: () => ['car.model', 'car.mass', 'car.frontPct', 'car.cgHeight', 'car.wheelbase', 'car.tireDia', 'car.tireWidth', 'car.tireRate', 'front.wheelSpacer', 'rear.wheelSpacer', 'car.frontDiff'] },
+      controls: () => ['car.model', 'car.chassis', 'car.mass', 'car.frontPct', 'car.cgHeight', 'car.wheelbase', 'car.tireDia', 'car.tireWidth', 'car.tireRate', 'front.wheelSpacer', 'rear.wheelSpacer', 'car.frontDiff'] },
     { id: 'sheet', name: 'Setup sheet', title: 'Setup sheet', controls: () => [] },
   ];
   const tabById = (id) => TABS.find((t) => t.id === id) || TABS[0];
@@ -117,7 +125,7 @@
   const state = {
     setup: P.stockSetup(), tab: 'camber', axle: 'front',
     travel: 0, steer: 1, ay: 1.4, ax: 1.0, exaggerate: true, theme: 'auto',
-    ctl: 'slider', view: '2d', pinned: true, cam: { yaw: 35, elev: 22 },
+    ctl: 'slider', view: '3d', pinned: true, cam: { yaw: 35, elev: 22 }, style: 'real', expanded: false,
   };
   const CTL_STYLES = [['slider', 'Slider'], ['wheel', 'Wheel'], ['dial', 'Dial']];
   // starting camera for the live 3D view on each topic
@@ -138,6 +146,7 @@
       if (CTL_STYLES.some(([k]) => k === d.ctl)) state.ctl = d.ctl;
       if (d.view === '2d' || d.view === '3d') state.view = d.view;
       if (typeof d.pinned === 'boolean') state.pinned = d.pinned;
+      if (d.style === 'real' || d.style === 'blueprint') state.style = d.style;
       if (d.tab && TABS.some((t) => t.id === d.tab)) state.tab = d.tab;
     } catch (e) { /* storage unavailable: run with stock values */ }
   }
@@ -146,7 +155,7 @@
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       try {
-        localStorage.setItem(KEY, JSON.stringify({ setup: state.setup, axle: state.axle, exaggerate: state.exaggerate, theme: state.theme, tab: state.tab, ctl: state.ctl, view: state.view, pinned: state.pinned }));
+        localStorage.setItem(KEY, JSON.stringify({ setup: state.setup, axle: state.axle, exaggerate: state.exaggerate, theme: state.theme, tab: state.tab, ctl: state.ctl, view: state.view, pinned: state.pinned, style: state.style }));
       } catch (e) { /* ignore */ }
     }, 250);
   }
@@ -225,6 +234,8 @@
     if (eb) eb.textContent = P.CARS[state.setup.car.model].name;
     document.title = 'TC Setup Lab';
     state.cam = Object.assign({}, CAM_DEFAULT[t.id] || D3.VIEWS.iso);
+    state.expanded = false;
+    document.body.classList.remove('noscroll');
     const parts = [];
     parts.push('<div id="notices"></div>');
     if (t.id !== 'sheet') {
@@ -233,6 +244,8 @@
           <div class="vseg" role="group" aria-label="View"><button id="v-2d" data-view="2d">Drawing</button><button id="v-3d" data-view="3d">3D car</button></div>
           <span class="vgap"></span>
           <button class="chip" id="ex-chip" hidden>Exaggerate</button>
+          <button class="chip" id="bp-chip" hidden>Blueprint</button>
+          <button class="chip" id="fs-chip" hidden aria-label="Expand the 3D view">Expand</button>
           <button class="chip" id="pin-chip">Pin</button>
         </div>
         <div class="cap" id="cap"></div>
@@ -281,6 +294,14 @@
     });
     const ex = $('#ex-chip');
     if (ex) ex.addEventListener('click', () => { state.exaggerate = !state.exaggerate; refreshToggles(); update(); save(); });
+    const bp = $('#bp-chip');
+    if (bp) bp.addEventListener('click', () => {
+      state.style = state.style === 'blueprint' ? 'real' : 'blueprint';
+      const V = glViewer(); if (V) V.setStyle(state.style);
+      refreshToggles(); save();
+    });
+    const fs = $('#fs-chip');
+    if (fs) fs.addEventListener('click', () => setExpanded(!state.expanded));
     const reset = $('#tab-reset');
     if (reset) reset.addEventListener('click', () => {
       for (const p of controlList()) if (p !== 'car.model') P.setPath(state.setup, p, stockOf(p));
@@ -336,6 +357,22 @@
       }
     }
     const dg = $('#dg'); if (dg) dg.classList.toggle('orbit', state.view === '3d');
+    const gl = state.view === '3d' && !!glViewer();
+    const bp = $('#bp-chip'); if (bp) { bp.hidden = !gl; press('#bp-chip', state.style === 'blueprint'); }
+    const fs = $('#fs-chip'); if (fs) { fs.hidden = !gl; press('#fs-chip', state.expanded); fs.textContent = state.expanded ? 'Close' : 'Expand'; }
+  }
+  /** The realistic WebGL car, or null where WebGL is unavailable (the SVG car is used then). */
+  function glViewer() {
+    const M3 = window.TCModel3D;
+    return M3 ? M3.get() : null;
+  }
+  function setExpanded(on) {
+    state.expanded = !!on;
+    const d = $('#drawing');
+    if (d) d.classList.toggle('expanded', state.expanded);
+    document.body.classList.toggle('noscroll', state.expanded);
+    refreshToggles();
+    const V = glViewer(); if (V) requestAnimationFrame(() => V.resize());
   }
 
   // ---------- 3D orbit (drag to rotate) ----------
@@ -343,8 +380,10 @@
     const dg = $('#dg');
     if (!dg) return;
     let drag = null;
+    // the WebGL car runs its own orbit, pinch-zoom and pan
+    const ownOrbit = (e) => e.target && e.target.classList && e.target.classList.contains('gl3d');
     dg.addEventListener('pointerdown', (e) => {
-      if (state.view !== '3d') return;
+      if (state.view !== '3d' || ownOrbit(e)) return;
       drag = { x: e.clientX, y: e.clientY, yaw: state.cam.yaw, elev: state.cam.elev };
       try { dg.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     });
@@ -381,6 +420,7 @@
     const nv = snap(spec, v), old = P.getPath(state.setup, path);
     if (nv === old) return false;
     P.setPath(state.setup, path, nv);
+    flashPart(path);
     if (haptic) tick();
     refreshControls();
     scheduleUpdate(); save();
@@ -520,6 +560,7 @@
         row.querySelectorAll('[data-opt]').forEach((b) => b.addEventListener('click', () => {
           if (path === 'car.model') { switchCar(b.dataset.opt); return; }
           P.setPath(state.setup, path, b.dataset.opt);
+          flashPart(path);
           refreshControls(); scheduleUpdate(); save();
         }));
       } else {
@@ -681,14 +722,74 @@
     }
     return { res: solve({}), p: 0, E: 1, loads: true, note: 'static, on the setup board' };
   }
+  let glCamKey = '';
   function render3D(m) {
     const dg = $('#dg');
     if (!dg) return;
     const c = liveCondition(m);
     if (!c.res) return;
-    dg.innerHTML = D3.render(m, c, { px: pxWidth(), yaw: state.cam.yaw, elev: state.cam.elev, E: c.E, loads: c.loads });
     dg.classList.remove('multi', 'multi3');
+    const V = glViewer();
+    if (V) {
+      if (!dg.contains(V.canvas)) {
+        dg.innerHTML = '';
+        V.attach(dg);
+        V.setStyle(state.style);
+        V.onCamera = (v) => { state.cam.yaw = v.yaw; state.cam.elev = v.elev; glCamKey = camKey(); refreshToggles(); };
+        glCamKey = '';
+      }
+      V.update(m, c);
+      V.setLabels(wheelLabels(m, c));
+      // re-aim only when the camera was changed from outside (tab, preset button, double-tap)
+      if (camKey() !== glCamKey) { V.setView(state.cam.yaw, state.cam.elev, glCamKey !== ''); glCamKey = camKey(); }
+      $('#cap').innerHTML = `<span><b>Live 3D</b> · drag to rotate, pinch to zoom · ${c.note}</span><span>${scaleNote(c.E)}</span>`;
+      return;
+    }
+    dg.innerHTML = D3.render(m, c, { px: pxWidth(), yaw: state.cam.yaw, elev: state.cam.elev, E: c.E, loads: c.loads });
     $('#cap').innerHTML = `<span><b>Live 3D</b> · drag to rotate · ${c.note}</span><span>${scaleNote(c.E)}</span>`;
+  }
+  const camKey = () => `${state.tab}:${state.cam.yaw.toFixed(2)}:${state.cam.elev.toFixed(2)}`;
+  /** Numbers floated over each wheel (FL, FR, RL, RR) of the WebGL car, matching the topic. */
+  function wheelLabels(m, c) {
+    const L = wheelLabels4(m, c);
+    // topics viewed along one axle: label only that axle so the two pairs do not overlap
+    if (L && tabById(state.tab).axle) return L.map((x, i) => ((i < 2) === (state.axle === 'front') ? x : null));
+    return L;
+  }
+  function wheelLabels4(m, c) {
+    const t = state.tab, res = c.res, deg = (v) => fmtS(v, 2) + '°';
+    const corner = (i) => (i < 2 ? m.front : m.rear);
+    const travel = (i) => { const T = corner(i).table; return Math.max(T.sLo, Math.min(T.sHi, (res.corners[i].travel || 0) * (c.E || 1))); };
+    const grams = (i) => (res.corners[i].lifted ? 'lifted' : `${Math.round(res.corners[i].grams)} g`);
+    try {
+      if (t === 'camber') return [0, 1, 2, 3].map((i) => 'camber ' + deg(corner(i).table.at(travel(i), 'camber')));
+      if (t === 'springs') return [0, 1, 2, 3].map((i) => 'motion ratio ' + corner(i).table.at(travel(i), 'mr').toFixed(2));
+      if (t === 'toe') return [0, 1, 2, 3].map((i) => 'toe ' + deg(corner(i).table.at(travel(i), 'toe')));
+      if (t === 'ackermann' || t === 'caster') {
+        const F = m.front, r = P.steerAt(F, c.p);
+        if (!r) return null;
+        if (t === 'ackermann') return [`steer ${fmt(r.left, 1)}°`, `steer ${fmt(r.right, 1)}°`, null, null];
+        // caster tilts the steered wheels: camber of each front wheel at this lock, measured on the chassis
+        return [0, 1].map((i) => { const st = F.stateAtTravel(travel(i), i === 0 ? c.p : -c.p); return st ? 'camber ' + deg(st.camber) : null; }).concat([null, null]);
+      }
+      if (res.corners && res.corners[0].grams > 0) return [0, 1, 2, 3].map(grams);
+    } catch (e) { /* labels are decoration: never break the view */ }
+    return null;
+  }
+  // which parts glow when a setting changes
+  const PART_OF = {
+    camber: ['upper'], linkInZ: ['upper'], linkInY: ['upper'], linkOutSpacer: ['upper'], caster: ['upper', 'hub'], kpi: ['hub', 'upper'],
+    rideHeight: ['shock', 'arm'], pivotZ: ['arm'], kickup: ['arm'], antiSquat: ['arm'], droop: ['arm'],
+    toe: ['steer'], ackInset: ['steer'], armLength: ['steer'], plateY: ['steer'], plateDX: ['steer'], ballSpacer: ['steer'], plateSpacer: ['steer'], lock: ['steer', 'wheel'],
+    wheelSpacer: ['wheel'], tireDia: ['wheel'], tireWidth: ['wheel'],
+    spring: ['shock'], rocker: ['rocker', 'push', 'shock'], shockArm: ['shock'], shockTowerY: ['shock'], swayBar: ['arb'],
+    chassis: ['chassis'], wheelbase: ['chassis'],
+  };
+  function flashPart(path) {
+    if (state.view !== '3d') return;
+    const V = glViewer();
+    const [axle, key] = path.split('.');
+    if (V && PART_OF[key]) V.flash(PART_OF[key], axle === 'front' || axle === 'rear' ? axle : null);
   }
 
   function update() {
@@ -945,7 +1046,7 @@
     const row = (path) => {
       const spec = P.PARAMS[path], v = P.getPath(state.setup, path), meta = metaFor(path, false);
       let txt;
-      if (spec.options) txt = (path === 'car.model' ? META.model : META.frontDiff).options[v][0];
+      if (spec.options) txt = meta.options && meta.options[v] ? meta.options[v][0] : v;
       else txt = (meta.signed ? fmtS(v, decimals(spec.step)) : fmt(v, decimals(spec.step))) + ' ' + spec.unit;
       const st = stockOf(path);
       const changed = spec.options ? v !== st : Math.abs(v - st) > 1e-9;

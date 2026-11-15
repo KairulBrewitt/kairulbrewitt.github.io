@@ -19,8 +19,42 @@ shim, a ball-stud spacer) changes everything it really affects.
 | Car | weight, balance, CG, wheelbase, tyres, spacers | corner weights, track, 190 mm width check |
 
 Adjust with sliders, a thumbwheel (roll it like a turnbuckle) or a dial, plus
-−/+ steps (hold to repeat) and tap-to-type values. The drawing stays pinned
-while you adjust and can switch to a live 3D car you can rotate.
+−/+ steps (hold to repeat) and tap-to-type values. The live view stays pinned
+while you adjust.
+
+## The 3D car
+
+The live view is a realistic WebGL model of the SP2 (three.js, bundled, works
+offline). It is built from the manual's drawings: the chassis plate outline and
+holes, bulkheads with the spool / diff pulleys and belts, upper bulkheads with
+caster inserts, curved upper arms, lower arms traced from the arm drawing,
+uprights and steering arms, steering rack, rear toe links, pushrods, rockers,
+laid-down shocks on the 2112 mounts, anti-roll bars, motor mount, layshaft and
+spur, motor, top decks, servo, ESC, receiver, battery, bumper and body posts.
+Materials are physically based (carbon weave with clear coat, anodised and bare
+aluminium, steel, composite, rubber) with studio reflections and soft shadows on
+a setup board.
+
+Every suspension part is placed from the solver: each corner's arm, hub, upper
+arm, steering or toe link, pushrod, rocker, shock and bar link come from that
+corner's 3D state, and the chassis sits on the heave, roll and pitch from the
+whole-car solve. Change a setting and the parts it moves glow for a moment;
+live numbers (camber, toe, steering angle, motion ratio or corner weight) float
+over the wheels.
+
+- Drag to orbit, pinch or scroll to zoom, two fingers to pan, double-tap to
+  reset; 3/4, front, side, rear and top presets.
+- **Blueprint**: translucent parts with every edge drawn, like a 3D technical
+  drawing.
+- **Expand**: full-screen car, with the travel / steering / g slider still
+  under it.
+- Chassis plate (carbon, aluminium, spring steel) and rocker hole are settings.
+- Where WebGL is unavailable the app falls back to the SVG car.
+
+Not from factory CAD: shapes are traced from the manual drawings and scaled to
+the published dimensions, so small details are approximate. The shock plane sits
+1.5 mm off the rocker's pushrod plane so the shock clears the lower arm; the
+rocker turns about a fore-aft axis, so this does not change the motion ratio.
 
 ## Cars
 
@@ -34,8 +68,9 @@ SP2 values are tagged in the app:
   caster 4° front / −2.5° rear (upper bulkhead inserts), arm-mount shims
   1.0 mm front / 1.5 mm rear, 1 mm shims under the upper hub balls, 0.5 mm
   shims under the steering-arm, toe-link and rack balls, 1.1 mm anti-roll
-  bars, 4.0 mm wheel hexes, front spool and rear gear diff, and a steering lock
-  of about 27° inside / 17° outside.
+  bars, 4.0 mm wheel hexes, front spool and rear gear diff, a steering lock
+  of about 27° inside / 17° outside, pushrods in the lowest rocker hole, and a
+  2.2 mm carbon chassis (1.5 mm aluminium and 1.2 mm spring-steel options).
 - **CAL**: not published, solved so the model reproduces a published kit
   number. The steering-arm ball offset is set so the kit lock gives 27°/17°.
 - **SP1**: the 257 mm wheelbase is the SP1 figure; RC Maker doesn't list it for
@@ -59,7 +94,10 @@ values from a real car can replace the estimates there.
   or SP2 upper arm) closes the loop; the hub turns on a kingpin, driven by a
   steering link from a rack/plate on twin bellcranks at the front and, on the
   SP2, by a fixed toe link at the rear. On the SP2 the kingpin is the line
-  through the two hub balls and caster is measured on the chassis.
+  through the two hub balls and caster is measured on the chassis. SP2 shocks
+  are driven by a fixed-length pushrod from the lower arm to a rocker on the
+  bulkhead; the rocker angle is solved in closed form, so the motion ratio
+  follows the chosen rocker hole (lowest = stiffest, as in the manual).
   Each constraint is solved in closed form (rotation about a known axis).
 - **Static setup like on the setup board:** for every geometry change the
   solver finds the arm angle for the ride height and the turnbuckle lengths for
@@ -86,8 +124,10 @@ Part dimensions for each car live in `HW_SP2` and `HW_GENERIC` in
 web/            the app (plain HTML/CSS/JS, no build step, works offline)
   js/physics.js   geometry + vehicle solver (also runs in Node)
   js/draw.js      true-scale 2D drawings and charts
-  js/draw3d.js    live 3D car
+  js/model3d.js   realistic WebGL SP2, posed by the solver
+  js/draw3d.js    SVG 3D car (fallback without WebGL)
   js/app.js       UI
+  vendor/         three.js r158 (MIT)
 tests/          physics tests (node --test)
 android/        native Android shell that ships web/ inside the APK
 ```
@@ -95,8 +135,9 @@ android/        native Android shell that ships web/ inside the APK
 ## Run it
 
 - Browser: open `web/index.html`.
-- Tests: `node --test tc-setup-lab/tests/*.test.js` (22 tests, including
-  analytic checks, SP2 kit checks and a 250-setup fuzz over both cars).
+- Tests: `node --test tc-setup-lab/tests/*.test.js` (23 tests, including
+  analytic checks, SP2 kit and rocker checks and a 250-setup fuzz over both
+  cars).
 - Android: open `android/` in Android Studio, or
   `cd tc-setup-lab/android && ./gradlew assembleDebug` with the Android SDK
   installed. The APK lands in `app/build/outputs/apk/debug/`.

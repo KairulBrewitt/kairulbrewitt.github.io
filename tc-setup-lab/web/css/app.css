@@ -435,3 +435,27 @@ textarea {
 .linkbtn { border: 0; background: none; color: var(--accent); font-weight: 600; text-decoration: underline; padding: 0 2px; }
 .sheet td.srccell { width: 1%; padding-left: 0; padding-right: 0; }
 .sheet td.wrap { white-space: normal; text-align: right; }
+
+/* ---------- realistic WebGL car ---------- */
+canvas.gl3d { display: block; width: 100%; touch-action: none; cursor: grab; border-radius: 0; }
+canvas.gl3d:active { cursor: grabbing; }
+#dg { --gl-max-h: 62vh; }
+.drawing.pinned #dg { --gl-max-h: 34vh; }
+.drawing.expanded {
+  position: fixed; inset: 0; z-index: 60; border-radius: 0; border: 0; margin: 0;
+  display: flex; flex-direction: column; box-shadow: none;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.drawing.expanded .dg-wrap { flex: 1; min-height: 0; }
+.drawing.expanded #dg { position: absolute; inset: 0; }
+.drawing.expanded .cap { white-space: normal; }
+body.noscroll { overflow: hidden; }
+#dg { position: relative; }
+.gl-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.gl-label {
+  position: absolute; transform: translate(-50%, -100%); white-space: nowrap;
+  font: 600 11.5px/1.25 var(--font-body); color: #f3f5f4; background: rgba(12, 14, 16, 0.74);
+  padding: 2px 7px; border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.14);
+  font-variant-numeric: tabular-nums;
+}
+.gl-labels.bp .gl-label { background: rgba(9, 34, 60, 0.82); border-color: rgba(190, 225, 255, 0.55); color: #e3f2ff; }
