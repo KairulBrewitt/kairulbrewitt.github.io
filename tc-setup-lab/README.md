@@ -25,24 +25,35 @@ while you adjust.
 ## The 3D car
 
 The live view is a realistic WebGL model of the SP2 (three.js, bundled, works
-offline), matched to RC Maker's manual drawings and to photos of the kit:
+offline), built from RC Maker's manual drawings, which are to scale, and from
+photos of the kit for colours and finish.
 
-- **Chassis plate**: outline and all 66 holes, countersinks, spur windows and
-  vent clusters measured from the manual's bottom view (2.07 px/mm), with
-  flat-head screws where the drawing shows them fitted. The model is rendered
-  orthographically at the drawing's scale and overlaid on it to check fit.
-- **Suspension**: lower arms traced from the arm drawing (carbon), black
-  uprights and curved upper arms with the tall up-stop post, bronze dog-bone
-  rockers on the bulkhead faces, black pushrods, coaxial shocks (threaded
-  body, knurled collar and caps, XS spring, finned retainer) from the rocker
-  to the 2112 post that rises through the arm window, steering rack, rear toe
-  links, low anti-roll bars in hook holders.
-- **Drivetrain and the rest**: bulkheads, 38 T spool / diff pulleys and
-  belts, layshaft over the plate's spur windows with the spur on the right,
-  motor on the left, narrow carbon spine, oval foam bumper with carbon brace
-  and body posts, servo, ESC, receiver, battery.
-- **Finish**: black anodised aluminium and carbon with bronze anodised
-  rockers, turnbuckles, nuts and screws, as on the kit.
+How the drawings are used:
+
+- **Orthographic views** (bottom and top of the car, side view of a bulkhead,
+  top view of the upper arm) are scaled from known dimensions (wheelbase,
+  pulley flange, tower spacing) and traced: the chassis plate outline and all
+  66 holes, the top deck, the bulkhead outline, the lower arm, the upper arm.
+- **Perspective figures** are matched by fitting each figure's camera to the
+  exact chassis plate; the model is then rendered through that camera and
+  overlaid on the drawing, and part outlines (motor mount) and heights (top
+  deck, layshaft) are back-projected through it.
+
+What is modelled from them:
+
+- Chassis plate with countersunk screws; 9.8 mm top-deck spine with S-curved
+  forks to the bulkheads; bulkheads with rear ear, towers, nose, claw, toothed
+  diff-height eccentric and insert; motor mount; layshaft over the plate's
+  spur windows with the spur on the right; 38 T pulleys and belts.
+- Carbon lower arms with ball-cup pucks; triangular upper wishbones on the
+  bulkhead towers with the threaded camber adjuster to a tall upper ball cup
+  carrying the up-stop screw; uprights with bearing housing and universal
+  joint; bronze dog-bone rockers on the bulkhead noses; pushrods; coaxial
+  shocks to the 2112 posts; low anti-roll bars in hook holders; steering rack
+  (slotted bellcrank arms, translating bar); servo on the floating mount; rear
+  toe links.
+- Oval foam bumper with carbon brace and body posts; rear body bars; battery
+  holders. Black anodised aluminium and carbon with bronze accents.
 
 Every suspension part is placed from the solver: each corner's arm, hub, upper
 arm, steering or toe link, pushrod, rocker, shock and bar link come from that
@@ -60,10 +71,11 @@ over the wheels.
 - Chassis plate (carbon, aluminium, spring steel) and rocker hole are settings.
 - Where WebGL is unavailable the app falls back to the SVG car.
 
-Not from factory CAD: parts are traced from the manual's 2D drawings and
-photos and scaled to published dimensions. The plate, arm outline and top-view
-layout are checked against the drawings; heights and some hidden parts are
-estimates.
+Not from factory CAD: the manual's drawings are about 2-6 px per mm, so
+outlines are accurate to roughly half a millimetre on large parts. Where a
+drawing and the photos disagree with a physical constraint (the deck must clear
+the layshaft belt), the constraint wins. Electronics, wheels and tyres are
+generic, as they are not part of the kit.
 
 ## Cars
 

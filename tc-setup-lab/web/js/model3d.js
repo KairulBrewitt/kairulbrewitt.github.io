@@ -844,12 +844,21 @@
         for (let k = 0; k < 2; k++) this.rackPost.push(this._mesh(new THREE.CylinderGeometry(3, 3, 1, 18), M.orange, G));
       }
       this._tag = 'chassis'; this._axle = null;
-      const servo = this._mesh(new THREE.BoxGeometry(20, 40, 18), M.electronics, G);
-      servo.position.set(-74, 34, top + 9);
-      const tabs = this._mesh(new THREE.BoxGeometry(24, 52, 2), M.electronics, G);
-      tabs.position.set(-74, 34, top + 12);
-      const servoMount = this._mesh(new THREE.BoxGeometry(26, 6, 14), M.alu, G);
-      servoMount.position.set(-74, 11, top + 7);
+      // low-profile servo standing across the car behind the rack, output near the centreline, held by
+      // its ears on the floating mount (manual step 8: top view and mount drawings)
+      const sv = { x: -74, y0: 13.5, y1: 53.5, h: 25 };
+      const servo = this._mesh(new THREE.BoxGeometry(20, sv.y1 - sv.y0, sv.h), M.electronics, G);
+      servo.position.set(sv.x, (sv.y0 + sv.y1) / 2, top + 1.5 + sv.h / 2);
+      const ears = this._mesh(new THREE.BoxGeometry(18, sv.y1 - sv.y0 + 14, 2.4), M.electronics, G);
+      ears.position.set(sv.x, (sv.y0 + sv.y1) / 2, top + 1.5 + 18.5);
+      const cap = this._mesh(new THREE.CylinderGeometry(5.5, 5.5, 3, 20), M.electronics, G);
+      cap.rotation.x = Math.PI / 2; cap.position.set(sv.x - 3, sv.y0 + 6.5, top + 1.5 + sv.h + 1.5);
+      for (const yy of [sv.y0 - 4.5, sv.y1 + 4.5]) {   // floating mount brackets under the ears
+        const br = this._mesh(new THREE.BoxGeometry(18, 5, 18.5), M.alu, G); br.position.set(sv.x, yy, top + 1.5 + 9.25 - 1.2);
+        const ft = this._mesh(new THREE.BoxGeometry(22, 8, 1.5), M.alu, G); ft.position.set(sv.x, yy, top + 0.75);
+        for (const dx of [-6, 6]) { const sc = this._mesh(new THREE.CylinderGeometry(1.6, 1.6, 1.2, 12), M.bronze, G); sc.rotation.x = Math.PI / 2; sc.position.set(sv.x + dx, yy, top + 1.5 + 19.8); }
+      }
+      this.servoOut = [sv.x - 3, sv.y0 + 6.5, top + 1.5 + sv.h + 3.4];
 
       // ---- anti-roll bars: wire low over the plate in hook holders (manual step 8.7) ----
       this.arb = {};
@@ -1338,11 +1347,11 @@
         g2.position.set(piv[0], piv[1], zb);
         g2.rotation.set(0, 0, Math.atan2(ball[1] - piv[1], ball[0] - piv[0]) - Math.PI);
       });
-      const hornC = [-74, 20, this.plateT + 21];
+      const hornC = this.servoOut || [-74, 20, this.plateT + 21];
       const ang = (pbL[1] - pb0[1]) / 9;
       const hornTip = [hornC[0] + 10 * Math.cos(ang), hornC[1] + 10 * Math.sin(ang) - 2, hornC[2]];
       placeBetween(this.servoHorn, hornC, hornTip); this.servoHorn.scale.x = 4; this.servoHorn.scale.z = 2;
-      placeBetween(this.servoLink, hornTip, [mid[0] - 2, mid[1], mid[2] - 1]);
+      placeBetween(this.servoLink, hornTip, [this.servoBall.position.x, this.servoBall.position.y, this.servoBall.position.z]);
     }
 
     // ---------------------------------------------------------------
