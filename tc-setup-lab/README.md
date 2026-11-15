@@ -25,15 +25,24 @@ while you adjust.
 ## The 3D car
 
 The live view is a realistic WebGL model of the SP2 (three.js, bundled, works
-offline). It is built from the manual's drawings: the chassis plate outline and
-holes, bulkheads with the spool / diff pulleys and belts, upper bulkheads with
-caster inserts, curved upper arms, lower arms traced from the arm drawing,
-uprights and steering arms, steering rack, rear toe links, pushrods, rockers,
-laid-down shocks on the 2112 mounts, anti-roll bars, motor mount, layshaft and
-spur, motor, top decks, servo, ESC, receiver, battery, bumper and body posts.
-Materials are physically based (carbon weave with clear coat, anodised and bare
-aluminium, steel, composite, rubber) with studio reflections and soft shadows on
-a setup board.
+offline), matched to RC Maker's manual drawings and to photos of the kit:
+
+- **Chassis plate**: outline and all 66 holes, countersinks, spur windows and
+  vent clusters measured from the manual's bottom view (2.07 px/mm), with
+  flat-head screws where the drawing shows them fitted. The model is rendered
+  orthographically at the drawing's scale and overlaid on it to check fit.
+- **Suspension**: lower arms traced from the arm drawing (carbon), black
+  uprights and curved upper arms with the tall up-stop post, bronze dog-bone
+  rockers on the bulkhead faces, black pushrods, coaxial shocks (threaded
+  body, knurled collar and caps, XS spring, finned retainer) from the rocker
+  to the 2112 post that rises through the arm window, steering rack, rear toe
+  links, low anti-roll bars in hook holders.
+- **Drivetrain and the rest**: bulkheads, 38 T spool / diff pulleys and
+  belts, layshaft over the plate's spur windows with the spur on the right,
+  motor on the left, narrow carbon spine, oval foam bumper with carbon brace
+  and body posts, servo, ESC, receiver, battery.
+- **Finish**: black anodised aluminium and carbon with bronze anodised
+  rockers, turnbuckles, nuts and screws, as on the kit.
 
 Every suspension part is placed from the solver: each corner's arm, hub, upper
 arm, steering or toe link, pushrod, rocker, shock and bar link come from that
@@ -51,10 +60,10 @@ over the wheels.
 - Chassis plate (carbon, aluminium, spring steel) and rocker hole are settings.
 - Where WebGL is unavailable the app falls back to the SVG car.
 
-Not from factory CAD: shapes are traced from the manual drawings and scaled to
-the published dimensions, so small details are approximate. The shock plane sits
-1.5 mm off the rocker's pushrod plane so the shock clears the lower arm; the
-rocker turns about a fore-aft axis, so this does not change the motion ratio.
+Not from factory CAD: parts are traced from the manual's 2D drawings and
+photos and scaled to published dimensions. The plate, arm outline and top-view
+layout are checked against the drawings; heights and some hidden parts are
+estimates.
 
 ## Cars
 

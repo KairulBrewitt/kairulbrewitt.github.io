@@ -17,6 +17,81 @@
   if (!THREE || !P) { root.TCModel3D = null; return; }
   const DEG = Math.PI / 180;
 
+  // SP2 chassis plate measured from the manual's bottom view: half outline [x, y] from the front tip
+  // to the rear tip (x from the front axle, mm), and features [x, y, kind, a, b, screw]:
+  // cs = countersunk (a = countersink, b = hole), h = hole (a = diameter), slot (a x b), dots = vent cluster.
+  const PLATE_SP2 = {
+    half: [[23, 0], [23, 10.5], [20, 12.5], [16.5, 15.8], [14, 17.5], [9, 18.9], [8.5, 19.5], [-0.5, 25.9], [-3.5, 27.5], [-14, 29.4], [-15.5, 30], [-19, 30.4], [-22.5, 31.5], [-33, 33.4], [-53, 38.2], [-57.5, 38.8], [-60, 39.6], [-69.5, 40.6], [-181, 40.6], [-213, 37.7], [-258.5, 25.7], [-264.5, 20.7], [-270, 17], [-276, 14], [-279.5, 12], [-279.5, 0]],
+    holes: [
+      [-274.6, 0, 'cs', 6, 3, 1],
+      [-269, -12.5, 'cs', 6, 3, 1],
+      [-269, 12.5, 'cs', 6, 3, 1],
+      [-260.1, -8.9, 'cs', 6, 3, 1],
+      [-260.1, 9.1, 'cs', 6, 3, 1],
+      [-250.5, -12.6, 'cs', 6, 3, 1],
+      [-250.5, 12.6, 'cs', 6, 3, 1],
+      [-247.3, -24, 'cs', 6, 3, 1],
+      [-247.3, 24, 'cs', 6, 3, 1],
+      [-237.4, -18.6, 'h', 2.6, 0, 0],
+      [-237.4, 18.7, 'h', 2.6, 0, 0],
+      [-233.6, -8.9, 'cs', 6, 3, 1],
+      [-233.6, 9.1, 'cs', 6, 3, 1],
+      [-232.6, -18.7, 'h', 4.4, 0, 0],
+      [-232.6, 18.8, 'h', 4.4, 0, 0],
+      [-218.6, -18.4, 'cs', 6, 3, 0],
+      [-218.6, 18.4, 'cs', 6, 3, 0],
+      [-218.1, 0, 'cs', 6, 3, 0],
+      [-204.1, -26.1, 'cs', 6, 3, 1],
+      [-204, -34.3, 'cs', 6, 3, 1],
+      [-203.1, 0, 'cs', 6, 3, 1],
+      [-188.2, 0, 'cs', 6, 3, 0],
+      [-184.8, -34.3, 'cs', 6, 3, 0],
+      [-184.8, -26.1, 'cs', 6, 3, 0],
+      [-169.8, 0, 'cs', 6, 3, 0],
+      [-163.2, -3.6, 'slot', 3.6, 1.4, 0],
+      [-156.3, 0, 'cs', 6, 3, 1],
+      [-150, 0, 'h', 2.6, 0, 0],
+      [-143.7, 0, 'cs', 6, 3, 1],
+      [-129.9, -35.1, 'dots', 9.66, 4.83, 0],
+      [-129.9, -7, 'slot', 22.22, 8.7, 0],
+      [-129.9, 7, 'slot', 22.22, 8.7, 0],
+      [-129.9, 35.2, 'dots', 9.66, 5.31, 0],
+      [-115.7, 0, 'cs', 6, 3, 0],
+      [-93, 0, 'cs', 6, 3, 0],
+      [-80.4, -34.3, 'cs', 6, 3, 0],
+      [-80.4, -26.1, 'cs', 6, 3, 0],
+      [-78, 0, 'cs', 6, 3, 1],
+      [-65.7, 6.8, 'h', 2, 0, 0],
+      [-60.2, 6.8, 'h', 2.6, 0, 0],
+      [-56.8, -34.3, 'cs', 6, 3, 1],
+      [-56.8, -26.1, 'cs', 6, 3, 1],
+      [-55.3, -13, 'cs', 6, 3, 1],
+      [-55.3, 12.9, 'h', 2.6, 0, 0],
+      [-52.9, -0.2, 'cs', 6, 3, 1],
+      [-52.9, 6.3, 'cs', 6, 3, 1],
+      [-45.2, -22.7, 'cs', 6, 3, 0],
+      [-45.2, 22.7, 'cs', 6, 3, 0],
+      [-27.8, -18.7, 'h', 4.4, 0, 0],
+      [-27.8, 18.8, 'h', 4.4, 0, 0],
+      [-27.3, -9.5, 'cs', 6, 3, 1],
+      [-27.3, 9.6, 'cs', 6, 3, 1],
+      [-22.9, -18.6, 'h', 2.6, 0, 0],
+      [-22.9, 18.7, 'h', 2.6, 0, 0],
+      [-13.3, -24.4, 'cs', 6, 3, 0],
+      [-13.3, 24.5, 'cs', 6, 3, 0],
+      [-9.4, -12.6, 'cs', 6, 3, 1],
+      [-9.4, 12.6, 'cs', 6, 3, 1],
+      [0.2, -9.5, 'cs', 6, 3, 1],
+      [0.2, 9.6, 'cs', 6, 3, 1],
+      [9.9, -13, 'cs', 6, 3, 1],
+      [9.9, 13, 'cs', 6, 3, 1],
+      [15.5, 0.2, 'h', 2, 0, 0],
+      [16.4, 12.1, 'h', 4.4, 0, 0],
+      [18.9, -5.6, 'cs', 6, 3, 0],
+      [18.9, 5.7, 'cs', 6, 3, 0],
+    ],
+  };
+
   // ------------------------------------------------------------------
   // vector helpers (physics arrays)
   // ------------------------------------------------------------------
@@ -202,6 +277,48 @@
     }
     return m;
   }
+  /**
+   * Triangles for the blueprint edge pass, without zero-area slivers: the triangulator leaves some
+   * between closely spaced holes, and their undefined normals would draw stray lines across a part.
+   */
+  function edgeSource(g) {
+    const src = g.index ? g.toNonIndexed() : g, P = src.attributes.position, out = [];
+    const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+    for (let i = 0; i + 2 < P.count; i += 3) {
+      a.fromBufferAttribute(P, i); b.fromBufferAttribute(P, i + 1); c.fromBufferAttribute(P, i + 2);
+      const ab = b.clone().sub(a), ac = c.clone().sub(a);
+      if (ab.cross(ac).lengthSq() > 1e-8) out.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+    }
+    if (src !== g) src.dispose();
+    const ng = new THREE.BufferGeometry();
+    ng.setAttribute('position', new THREE.Float32BufferAttribute(out, 3));
+    return ng;
+  }
+  /** Merge [geometry, matrix] pairs into one indexed geometry (position, normal, uv). */
+  function mergeGeoms(list) {
+    const pos = [], nor = [], uv = [], idx = [];
+    let base = 0;
+    for (const [g0, m] of list) {
+      const g = g0.index ? g0.clone() : g0.clone();
+      g.applyMatrix4(m);
+      const P = g.attributes.position, N = g.attributes.normal, T = g.attributes.uv;
+      for (let i = 0; i < P.count; i++) {
+        pos.push(P.getX(i), P.getY(i), P.getZ(i));
+        nor.push(N.getX(i), N.getY(i), N.getZ(i));
+        uv.push(T ? T.getX(i) : 0, T ? T.getY(i) : 0);
+      }
+      if (g.index) for (let i = 0; i < g.index.count; i++) idx.push(base + g.index.getX(i));
+      else for (let i = 0; i < P.count; i++) idx.push(base + i);
+      base += P.count;
+      g.dispose();
+    }
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    out.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    out.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    out.setIndex(idx);
+    return out;
+  }
   function helixGeometry(r, wire, turns, segs) {
     const pts = [];
     for (let i = 0; i <= segs; i++) {
@@ -223,21 +340,23 @@
     return {
       carbon: new THREE.MeshPhysicalMaterial({ map: carbonMap, roughness: 0.38, metalness: 0.2, clearcoat: 1, clearcoatRoughness: 0.08 }),
       carbonSide: S({ color: 0x18181a, roughness: 0.7, metalness: 0.1 }),
-      alu: S({ color: 0x3e434b, metalness: 0.85, roughness: 0.32, envMapIntensity: 1.3 }),
-      aluLight: S({ color: 0xa7acb3, metalness: 1, roughness: 0.26 }),
-      orange: S({ color: 0xe8611a, metalness: 0.75, roughness: 0.32 }),
+      alu: S({ color: 0x232428, metalness: 0.78, roughness: 0.36, envMapIntensity: 1.3 }),     // black anodised
+      aluLight: S({ color: 0x34363b, metalness: 0.85, roughness: 0.3, envMapIntensity: 1.3 }),
+      silver: S({ color: 0xb9bdc3, metalness: 1, roughness: 0.24 }),
+      bronze: S({ color: 0xb4683d, metalness: 0.92, roughness: 0.3, envMapIntensity: 1.4 }),   // bronze anodised
+      orange: S({ color: 0xb4683d, metalness: 0.92, roughness: 0.3, envMapIntensity: 1.4 }),
       steel: S({ color: 0xdfe3e8, metalness: 1, roughness: 0.14 }),
-      screw: S({ color: 0x9ea3a8, metalness: 1, roughness: 0.3 }),
+      screw: S({ color: 0x2a2b2f, metalness: 0.85, roughness: 0.32 }),
       screwBlack: S({ color: 0x1b1c1e, metalness: 0.8, roughness: 0.4 }),
-      titanium: S({ color: 0xa3a9b0, metalness: 1, roughness: 0.32 }),
+      titanium: S({ color: 0x9a9fa6, metalness: 1, roughness: 0.3 }),
       composite: S({ color: 0x1c1d20, metalness: 0.05, roughness: 0.5 }),
       pom: S({ color: 0x0f0f10, metalness: 0, roughness: 0.42 }),
       rubber: S({ color: 0x141414, roughness: 0.93, metalness: 0, bumpMap: tread, bumpScale: 0.6 }),
       wheel: S({ color: 0xf2f1ee, roughness: 0.42, metalness: 0 }),
       belt: S({ color: 0x232325, roughness: 0.85 }),
-      foam: S({ color: 0x2c2e31, roughness: 1 }),
+      foam: S({ color: 0x1d1e20, roughness: 1 }),
       brass: S({ color: 0xc9a14a, metalness: 1, roughness: 0.3 }),
-      spring: S({ color: 0x2a2b2e, metalness: 0.9, roughness: 0.3 }),
+      spring: S({ color: 0x151517, metalness: 0.7, roughness: 0.32 }),
       aluChassis: S({ color: 0x1a1b1e, metalness: 0.7, roughness: 0.4 }),
       steelChassis: S({ color: 0x3b3d42, metalness: 0.92, roughness: 0.3 }),
       electronics: S({ color: 0x18181b, roughness: 0.5, metalness: 0.1 }),
@@ -246,8 +365,8 @@
       wireRed: S({ color: 0xb3261e, roughness: 0.55 }),
       wireBlack: S({ color: 0x111111, roughness: 0.55 }),
       wireBlue: S({ color: 0x1f5fbf, roughness: 0.55 }),
-      battery: S({ color: 0x26282c, roughness: 0.55, metalness: 0.1 }),
-      batteryLabel: S({ map: labelTexture(['7.4V 2S LiPo', 'hard case · 138 x 47 x 25 mm'], '#26282c', '#e9ecef', '#e8611a'), roughness: 0.5 }),
+      battery: S({ color: 0x1d1e21, roughness: 0.6, metalness: 0.05 }),
+      batteryLabel: S({ map: labelTexture(['7.4V 2S LiPo', 'hard case · 138 x 47 x 25 mm'], '#1d1e21', '#9a9ea4', '#1d1e21'), roughness: 0.5 }),
       motorLabel: S({ map: labelTexture(['540 BRUSHLESS', 'sensored · 13.5T'], '#2b2f35', '#e9ecef', '#3a7bd5'), roughness: 0.4, metalness: 0.5 }),
       board: S({ map: boardTexture(false), roughness: 0.82, metalness: 0 }),
     };
@@ -491,13 +610,6 @@
       this.dirty = true;
     }
 
-    /**
-     * Plane of the laid-down shock. The rocker turns about a fore-aft axis, so its shock eye can sit
-     * in any fore-aft plane without changing the motion ratio; this one keeps the shock inside the
-     * lower arm's window, clear of the anti-roll-bar ball.
-     */
-    _shockX(C) { return C.x0 + Math.sign(C.Hw.armU || 1) * 1.5; }
-
     _dispose(group) {
       if (!group) return;
       group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
@@ -524,43 +636,18 @@
       const sp2 = !!hw.front.rocker;
       const t = { carbon: 2.2, alu: 1.5, steel: 1.2 }[s.car.chassis] || ch.thick;
       this.plateT = t;
-      // ---- chassis plate (outline traced from the manual's top view) ----
-      const half = sp2 ? [[24, 12], [6, 28], [-4, 30], [-24, 31.3], [-42, 35.2], [-54, 37.9], [-66, 40.3], [-169, 40.3], [-193, 39.1], [-211, 37.3], [-224, 34.3], [-233, 32], [-WB + 4, 30], [-WB - 6, 28], [-WB - 22, 12]]
-        : [[ch.front, 20], [0, ch.halfWidth], [-WB, ch.halfWidth], [-WB - ch.rear, 20]];
-      const shp = new THREE.Shape();
-      half.forEach(([x, y], i) => { if (i === 0) shp.moveTo(x, y); else shp.lineTo(x, y); });
-      for (let i = half.length - 1; i >= 0; i--) shp.lineTo(half[i][0], -half[i][1]);
-      shp.closePath();
-      const holes = [];
-      const hole = (x, y, r) => holes.push(circlePath(x, y, r));
-      // arm ball mounts, bulkhead and motor-mount screws
-      for (const C of [F, R]) {
-        const cs = (C.Hw.cupSpan || 23) / 2;
-        for (const sg of [1, -1]) { hole(C.Pin[0] + cs, sg * C.Pin[1], 1.6); hole(C.Pin[0] - cs, sg * C.Pin[1], 1.6); }
-        const xa = C.isF ? 0 : -WB;
-        for (const dx of [-9, 9]) for (const sg of [1, -1]) hole(xa + dx, sg * 6, 1.6);
-      }
-      for (const dx of [-148, -112]) hole(dx, 6, 1.6);
-      // spur slot / pinion window
-      holes.push(slotPath(-152, 7, -105, 11.5));
-      if (s.car.chassis === 'steel') {
-        // weight-saving pockets of the steel chassis
-        for (const [x0, x1] of [[-50, -38], [-60, -46], [-212, -198]]) for (const sg of [1, -1]) holes.push(slotPath(x0, sg > 0 ? 16 : -30, x1, sg > 0 ? 30 : -16));
-        for (let x = -190; x <= -70; x += 20) holes.push(slotPath(x, -34, x + 12, -22));
-        for (let x = -100; x <= -66; x += 17) holes.push(slotPath(x, 18, x + 9, 34));
-      } else if (s.car.chassis === 'alu') {
-        for (let x = -180; x <= -80; x += 33) holes.push(slotPath(x, -33, x + 18, -25));
-        holes.push(slotPath(-96, 20, -72, 30));
-      } else {
-        // carbon: battery strap slots and lightening holes
-        holes.push(slotPath(-176, -36, -166, -18), slotPath(-86, -36, -76, -18));
-        for (let x = -200; x <= -60; x += 28) hole(x, 24, 2.2);
-        for (let x = -190; x <= -70; x += 40) hole(x, -6, 2.4);
-      }
-      shp.holes = holes;
+      // ---- chassis plate ----
       this._tag = 'chassis'; this._axle = null;
       const plateMat = s.car.chassis === 'steel' ? M.steelChassis : s.car.chassis === 'alu' ? M.aluChassis : [M.carbon, M.carbonSide];
-      this._mesh(plateGeom(shp, t, 0, 0.25, 12), plateMat, G);
+      if (sp2) this._sp2Plate(G, t, WB, plateMat);
+      else {
+        const half = [[ch.front, 20], [0, ch.halfWidth], [-WB, ch.halfWidth], [-WB - ch.rear, 20]];
+        const shp = new THREE.Shape();
+        half.forEach(([x, y], i) => { if (i === 0) shp.moveTo(x, y); else shp.lineTo(x, y); });
+        for (let i = half.length - 1; i >= 0; i--) shp.lineTo(half[i][0], -half[i][1]);
+        shp.closePath();
+        this._mesh(plateGeom(shp, t, 0, 0.25, 12), plateMat, G);
+      }
       const top = t;
 
       // ---- bulkheads, spool / diff, upper bulkheads, rocker mounts ----
@@ -617,21 +704,21 @@
         }
         this._tag = 'shock';
         if (C.Hw.rocker) {
-          // 2112 shock bulkhead mount: flat plate on the chassis, its post rises through the arm window
-          // to the laid-down shock. The rocker turns on a pin carried by two lugs on the bulkhead.
-          const rk = C.Hw.rocker, xr = C.x0 + rk.dx, xs = this._shockX(C);
+          // The rocker turns on a 4112 screw in a boss on the bulkhead's outer face. The 2112 mount
+          // is a flat plate on the chassis whose post rises through the lower-arm window to the
+          // shock's lower ball.
+          const rk = C.Hw.rocker, xr = C.x0 + rk.dx, xm = C.x0 + (rk.mountX !== undefined ? rk.mountX : rk.dx);
+          const face = xa - sgnIn * 12;            // outer face of the bulkhead
           for (const sg of [1, -1]) {
-            const pl = stadium([xs - sgnIn * 1, sg * 15], 6.5, [xs, sg * rk.mountY], 4.2);
-            pl.holes = [circlePath(xs, sg * rk.mountY, 1.2)];
+            const boss = this._mesh(new THREE.CylinderGeometry(3.4, 3.4, Math.abs(xr - face) + 1.5, 18), M.alu, G);
+            boss.rotation.z = Math.PI / 2; boss.position.set((xr + face) / 2 + sgnIn * 0.75, sg * rk.y, rk.z);
+            const screw = this._mesh(new THREE.CylinderGeometry(2.1, 2.1, 1.6, 6), M.screwBlack, G);
+            screw.rotation.z = Math.PI / 2; screw.position.set(xr - sgnIn * 2.6, sg * rk.y, rk.z);
+            const pl = stadium([xa - sgnIn * 2, sg * 12], 6, [xm, sg * rk.mountY], 4.4);
+            pl.holes = [circlePath(xa - sgnIn * 2, sg * 12, 1.6)];
             this._mesh(plateGeom(pl, 2, top, 0.3), M.alu, G);
-            const post = this._mesh(new THREE.CylinderGeometry(2, 2.3, rk.mountZ - top - 2, 16), M.alu, G);
-            post.rotation.x = Math.PI / 2; post.position.set(xs, sg * rk.mountY, (rk.mountZ + top + 2) / 2);
-            const pin = this._mesh(new THREE.CylinderGeometry(1.5, 1.5, 12, 12), M.steel, G);
-            pin.rotation.z = Math.PI / 2; pin.position.set(xr, sg * rk.y, rk.z);
-            for (const dx of [-4.2, 4.2]) {
-              const lug = this._mesh(new THREE.BoxGeometry(2.4, rk.y - 11, 7), M.alu, G);
-              lug.position.set(xr + dx, sg * (rk.y + 11) / 2, rk.z);
-            }
+            const post = this._mesh(new THREE.CylinderGeometry(2.1, 2.6, rk.mountZ - top - 2, 16), M.alu, G);
+            post.rotation.x = Math.PI / 2; post.position.set(xm, sg * rk.mountY, (rk.mountZ + top + 2) / 2);
           }
         }
         this._tag = 'steer';
@@ -639,8 +726,9 @@
         if (C.Hw.toeLink) {
           for (const sg of [1, -1]) {
             const p0 = sg > 0 ? C.plateBall(0) : mir(C.plateBall(0));
-            const br = this._mesh(new THREE.BoxGeometry(6, 4, p0[2] - top), M.alu, G);
-            br.position.set(p0[0], p0[1] - sg * 2, (p0[2] + top) / 2);
+            // ball on a bracket hanging from the upper bulkhead
+            const br = this._mesh(new THREE.BoxGeometry(5, 4, 36 - p0[2] + 1), M.alu, G);
+            br.position.set(p0[0], p0[1] - sg * 2.5, (36 + p0[2] - 1) / 2);
             const b = this._mesh(new THREE.SphereGeometry(2.15, 16, 12), M.steel, G); b.position.set(...p0);
           }
         }
@@ -649,68 +737,66 @@
       this._tag = 'chassis'; this._axle = null;
 
       // ---- motor mount, layshaft, belts, spur, motor ----
-      const xLs = -WB / 2, zLs = 20.5;
+      // Layshaft over the plate's spur windows (x -130), high enough for the 120 T spur to clear them;
+      // spur on the right of the belt pulley, motor on the left with its shaft reaching across.
+      const xLs = -130 - (WB - 257) / 2, zLs = 24, rSpur = 24.4, rPin = 6.35, xMo = xLs - (rSpur + rPin - 0.8);
       const mmShape = new THREE.Shape();
-      mmShape.moveTo(xLs - 40, top); mmShape.lineTo(xLs + 18, top); mmShape.lineTo(xLs + 18, 30);
-      mmShape.quadraticCurveTo(xLs + 18, 38.5, xLs + 8, 38.5); mmShape.lineTo(xLs - 34, 38.5); mmShape.quadraticCurveTo(xLs - 42, 38.5, xLs - 42, 30); mmShape.closePath();
-      mmShape.holes = [circlePath(xLs, zLs, 5.2), circlePath(xLs - 28.6, zLs, 11.5)];
-      this._mesh(sideGeom(mmShape, 4, 10.5, 0.4), M.alu, G);
-      const mm2 = roundRect(xLs - 10, top, xLs + 18, 38.5, 4);
+      mmShape.moveTo(xMo - 20, top); mmShape.lineTo(xLs + 14, top); mmShape.lineTo(xLs + 14, 32);
+      mmShape.quadraticCurveTo(xLs + 14, 38.5, xLs + 6, 38.5); mmShape.lineTo(xMo - 12, 38.5); mmShape.quadraticCurveTo(xMo - 20, 38.5, xMo - 20, 32); mmShape.closePath();
+      mmShape.holes = [circlePath(xLs, zLs, 5.2), circlePath(xMo, zLs, 11.5), slotPath(xMo - 9, top + 3, xMo + 9, top + 7)];
+      this._mesh(sideGeom(mmShape, 4, 9, 0.4), M.alu, G);
+      const mm2 = roundRect(xLs - 12, top, xLs + 14, 38.5, 4);
       mm2.holes = [circlePath(xLs, zLs, 5.2)];
-      this._mesh(sideGeom(mm2, 4, -9.5, 0.4), M.alu, G);
-      this._mesh(plateGeom(roundRect(xLs - 12, -9.5, xLs + 18, 14.5, 3), 3, 35.5, 0.3), M.alu, G);
-      const lay = this._mesh(new THREE.CylinderGeometry(2.5, 2.5, 24, 14), M.steel, G); lay.position.set(xLs, 1.5, zLs);
-      const lp = this._mesh(EX(gearShape(20, 7.0, 7.7), 10, 0, 2).applyMatrix4(new THREE.Matrix4().set(1, 0, 0, xLs, 0, 0, -1, 5, 0, 1, 0, zLs, 0, 0, 0, 1)), M.aluLight, G);
-      void lp;
-      // belts: convex hull loop around the layshaft pulley and the spool / diff pulley
+      this._mesh(sideGeom(mm2, 2.4, -10.4, 0.3), M.alu, G);
+      this._mesh(plateGeom(roundRect(xLs - 14, -10.4, xLs + 16, 13, 3), 3, 35.5, 0.3), M.alu, G);
+      const lay = this._mesh(new THREE.CylinderGeometry(2.5, 2.5, 25, 14), M.steel, G); lay.position.set(xLs, 1.5, zLs);
+      this._mesh(EX(gearShape(20, 7.0, 7.7), 10, 0, 2).applyMatrix4(new THREE.Matrix4().set(1, 0, 0, xLs, 0, 0, -1, 5, 0, 1, 0, zLs, 0, 0, 0, 1)), M.aluLight, G);
+      for (const yy of [-5.3, 5.3]) { const fl = this._mesh(new THREE.CylinderGeometry(9.2, 9.2, 0.6, 30), M.alu, G); fl.position.set(xLs, yy, zLs); }
+      // belts: loop around the layshaft pulley and the spool / diff pulley
       for (const [C, yb] of [[F, 2.75], [R, -2.75]]) {
         const xa = C.isF ? 0 : -WB;
         const outer = stadium([xLs, zLs], 8.4, [xa, zDiff], 19.0);
-        outer.holes = [(() => { const sIn = stadium([xLs, zLs], 7.6, [xa, zDiff], 18.2); const p = new THREE.Path(sIn.getPoints(40).reverse()); return p; })()];
+        outer.holes = [(() => { const sIn = stadium([xLs, zLs], 7.6, [xa, zDiff], 18.2); return new THREE.Path(sIn.getPoints(40).reverse()); })()];
         this._mesh(sideGeom(outer, 4.2, yb - 2.1, 0, 24), M.belt, G);
       }
-      // spur gear (64 pitch) and pinion
-      const spur = gearShape(116, 22.6, 23.3);
-      spur.holes = [circlePath(0, 0, 2.6), circlePath(9, 0, 3.5), circlePath(-9, 0, 3.5), circlePath(0, 9, 3.5), circlePath(0, -9, 3.5)];
+      // spur (64 pitch, 120 T) with its hub, and the pinion
+      const spur = gearShape(120, rSpur - 0.8, rSpur);
+      spur.holes = [circlePath(0, 0, 2.6)].concat([0, 1, 2, 3, 4, 5].map((i) => circlePath(Math.cos(i * Math.PI / 3) * 13, Math.sin(i * Math.PI / 3) * 13, 4.2)));
       const sg2 = EX(spur, 1.8, 0, 2);
-      sg2.applyMatrix4(new THREE.Matrix4().set(1, 0, 0, xLs, 0, 0, -1, 9.8, 0, 1, 0, zLs, 0, 0, 0, 1));
+      sg2.applyMatrix4(new THREE.Matrix4().set(1, 0, 0, xLs, 0, 0, -1, -5.6, 0, 1, 0, zLs, 0, 0, 0, 1));
       this._mesh(sg2, M.composite, G);
-      const pin = this._mesh(EX(gearShape(32, 5.9, 6.5), 4, 0, 2).applyMatrix4(new THREE.Matrix4().set(1, 0, 0, xLs - 29.4, 0, 0, -1, 12, 0, 1, 0, zLs, 0, 0, 0, 1)), M.aluLight, G);
-      void pin;
-      // motor (540, 36 mm can) lying across the car on the left
+      const sh = this._mesh(new THREE.CylinderGeometry(7, 7, 1.6, 24), M.alu, G); sh.position.set(xLs, -8.2 + 0.8, zLs);
+      this._mesh(EX(gearShape(30, rPin - 0.6, rPin), 4, 0, 2).applyMatrix4(new THREE.Matrix4().set(1, 0, 0, xMo, 0, 0, -1, -4.6, 0, 1, 0, zLs, 0, 0, 0, 1)), M.steel, G);
+      const shaft = this._mesh(new THREE.CylinderGeometry(1.6, 1.6, 18, 10), M.steel, G); shaft.position.set(xMo, 4, zLs);
+      // motor (540, 36 mm can) on the left
       const motor = new THREE.Group(); G.add(motor);
       const can = this._mesh(new THREE.CylinderGeometry(17.95, 17.95, 38, 40), [M.motorCan, M.aluLight, M.aluLight], motor);
-      can.position.set(xLs - 29.4, 14.5 + 19, zLs);
+      can.position.set(xMo, 13 + 19, zLs);
       const lbl = this._mesh(new THREE.CylinderGeometry(18.05, 18.05, 20, 40, 1, true, -Math.PI * 0.35, Math.PI * 0.7), M.motorLabel, motor);
       lbl.position.copy(can.position);
-      const endbell = this._mesh(new THREE.CylinderGeometry(17.5, 17.5, 13, 40), M.alu, motor);
-      endbell.position.set(xLs - 29.4, 14.5 + 38 + 6.5, zLs);
+      const endbell = this._mesh(new THREE.CylinderGeometry(17.5, 17.5, 12, 40), M.alu, motor);
+      endbell.position.set(xMo, 13 + 38 + 6, zLs);
       for (let i = 0; i < 18; i++) {   // finned heat-sink ring
         const a = i / 18 * Math.PI * 2;
         const fin = this._mesh(new THREE.BoxGeometry(1.2, 22, 4), M.heatsink, motor);
-        fin.position.set(xLs - 29.4 + Math.cos(a) * 19.6, 14.5 + 22, zLs + Math.sin(a) * 19.6);
+        fin.position.set(xMo + Math.cos(a) * 19.6, 13 + 21, zLs + Math.sin(a) * 19.6);
         fin.rotation.y = -a;
       }
       for (let i = 0; i < 3; i++) {    // solder tabs
         const tab = this._mesh(new THREE.BoxGeometry(5, 3, 1.5), M.brass, motor);
-        tab.position.set(xLs - 36 + i * 7, 14.5 + 38 + 14, zLs + 12);
+        tab.position.set(xMo - 7 + i * 7, 13 + 38 + 13.5, zLs + 12);
       }
-      // fan on the motor mount
-      const fanBox = this._mesh(new THREE.BoxGeometry(10, 30, 30), M.electronics, G);
-      fanBox.position.set(xLs + 7, 30, top + 15);
-      const fanRing = this._mesh(new THREE.TorusGeometry(12.5, 1.2, 8, 30), M.heatsink, G);
-      fanRing.position.set(xLs + 12.2, 30, top + 15); fanRing.rotation.y = Math.PI / 2;
 
-      // ---- top decks (2.0 mm carbon) ----
-      const tdShape = (x0, x1) => {
-        const sh = roundRect(x1, -8.5, x0, 8.5, 6);
+      // ---- top deck: narrow 2.0 mm carbon spine from bulkhead to bulkhead (photos) ----
+      {
+        const x0 = 8, x1 = -WB - 8, sp = new THREE.Shape();
+        sp.moveTo(x0, 0); sp.absarc(x0 - 6, 0, 6, 0, Math.PI / 2, false); sp.lineTo(x1 + 6, 6); sp.absarc(x1 + 6, 0, 6, Math.PI / 2, Math.PI * 1.5, false);
+        sp.lineTo(x0 - 6, -6); sp.absarc(x0 - 6, 0, 6, -Math.PI / 2, 0, false);
         const hs = [];
-        for (let x = x1 + 12; x < x0 - 12; x += 22) hs.push(slotPath(x, -3, Math.min(x + 15, x0 - 12), 3));
-        sh.holes = hs;
-        return sh;
-      };
-      this._mesh(plateGeom(tdShape(4, xLs + 16), 2, 38.5, 0.2), [M.carbon, M.carbonSide], G);
-      this._mesh(plateGeom(tdShape(xLs - 10, -WB - 4), 2, 38.5, 0.2), [M.carbon, M.carbonSide], G);
+        for (let x = x1 + 16; x < x0 - 16; x += 19) if (Math.abs(x - xLs) > 18) hs.push(slotPath(x, -2.2, Math.min(x + 12, x0 - 16), 2.2));
+        sp.holes = hs;
+        this._mesh(plateGeom(sp, 2, 38.5, 0.2), [M.carbon, M.carbonSide], G);
+      }
 
       // ---- steering rack posts and servo ----
       this.rackPost = [];
@@ -727,24 +813,33 @@
       const servoMount = this._mesh(new THREE.BoxGeometry(26, 6, 14), M.alu, G);
       servoMount.position.set(-74, 11, top + 7);
 
-      // ---- anti-roll bars ----
+      // ---- anti-roll bars: wire low over the plate in hook holders (manual step 8.7) ----
       this.arb = {};
       for (const C of [F, R]) {
-        const dsg = C.isF ? 1 : -1;
-        const ballX = C.Pin[0] + (C.Hw.arbArmU || 0);
-        const xb = ballX + dsg * 12, zb = 12.5;
-        const yEnd = C.Pin[1] + C.Hw.arbArm;
+        const xa = C.isF ? 0 : -WB, dsg = C.isF ? 1 : -1;
+        const xh = C.isF ? xa - 22.9 : xa + 19.6, yh = 18.6, zb = top + 1.3;
+        const ballX = C.Pin[0] + (C.Hw.arbArmU || 0), yEnd = C.Pin[1] + C.Hw.arbArm;
         const d = s[C.axle].swayBar;
-        this.arb[C.axle] = { xb, zb, yEnd, ballX };
+        this.arb[C.axle] = { zb, ballX, yEnd };
         this._tag = 'arb'; this._axle = C.axle;
         for (const sg of [1, -1]) {
-          const holder = this._mesh(new THREE.BoxGeometry(6, 5, zb + 2 - top), M.alu, G);
-          holder.position.set(xb, sg * 22, (zb + 2 + top) / 2);
+          const hook = new THREE.Shape();
+          hook.moveTo(-3, top); hook.lineTo(3, top); hook.lineTo(3, top + 2.4); hook.quadraticCurveTo(3, top + 3.6, 1.6, top + 3.6);
+          hook.lineTo(-1.6, top + 3.6); hook.quadraticCurveTo(-3, top + 3.6, -3, top + 2.4); hook.closePath();
+          hook.holes = [circlePath(0, zb, 0.8)];
+          const hg = EX(hook, 5, 0.3, 8);
+          hg.applyMatrix4(new THREE.Matrix4().set(1, 0, 0, xh, 0, 0, -1, sg * yh + 2.5, 0, 1, 0, 0, 0, 0, 0, 1));
+          this._mesh(hg, M.alu, G);
+          for (const dy of [-3.6, 3.6]) {
+            const col = this._mesh(new THREE.CylinderGeometry(1.5, 1.5, 1.6, 12), M.bronze, G);
+            col.position.set(xh, sg * yh + dy, zb);
+          }
         }
         if (d > 0) {
-          const pts = [[ballX, yEnd, zb], [xb, yEnd - 6, zb], [xb, 22, zb], [xb, -22, zb], [xb, -yEnd + 6, zb], [ballX, -yEnd, zb]].map((p) => V(p));
-          const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.1);
-          this._mesh(new THREE.TubeGeometry(curve, 60, d / 2, 8, false), M.steel, G);
+          const xe = ballX - dsg * 2;
+          const pts = [[xe, yEnd, zb], [xh + dsg * 6, yEnd - 2, zb], [xh, yh + 3, zb], [xh, -yh - 3, zb], [xh + dsg * 6, -yEnd + 2, zb], [xe, -yEnd, zb]].map((p) => V(p));
+          this._mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.2), 80, d / 2, 8, false), M.steel, G);
+          for (const sg of [1, -1]) { const e = this._mesh(new THREE.CylinderGeometry(1.4, 1.4, 3, 10), M.pom, G); e.rotation.z = Math.PI / 2; e.position.set(xe, sg * yEnd, zb); }
         }
       }
 
@@ -773,31 +868,94 @@
       const wire = (pts, r, mat) => this._mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map((p) => V(p))), 24, r, 8, false), mat, G);
       wire([[-180, 22, top + 8], [-176, 10, top + 6], [-170, 2, top + 4], [-165, -14, top + 5]], 1.6, M.wireRed);
       wire([[-180, 26, top + 8], [-174, 14, top + 5], [-168, 0, top + 3.5], [-160, -14, top + 5]], 1.6, M.wireBlack);
-      for (let i = 0; i < 3; i++) wire([[-177, 34 + i * 3, top + 9], [-170, 40 + i * 3, top + 14], [xLs - 42 + i * 6, 66, zLs + 12]], 1.2, [M.wireBlue, M.wireBlack, M.wireRed][i]);
+      for (let i = 0; i < 3; i++) wire([[-177, 34 + i * 3, top + 9], [-170, 40 + i * 3, top + 14], [xMo - 7 + i * 7, 64, zLs + 12]], 1.2, [M.wireBlue, M.wireBlack, M.wireRed][i]);
 
-      // ---- bumper, bumper mount, body posts ----
+      // ---- foam bumper (oval, from the manual's top view), carbon brace on top, body posts ----
       const bump = new THREE.Shape();
-      bump.moveTo(44, 70); bump.quadraticCurveTo(72, 66, 82, 30); bump.quadraticCurveTo(87, 0, 82, -30); bump.quadraticCurveTo(72, -66, 44, -70);
-      bump.lineTo(44, -56); bump.quadraticCurveTo(62, -52, 68, -22); bump.quadraticCurveTo(71, 0, 68, 22); bump.quadraticCurveTo(62, 52, 44, 56); bump.closePath();
-      this._mesh(plateGeom(bump, 10, 4, 1.5, 24), M.foam, G);
-      const bm = new THREE.Shape();
-      bm.moveTo(8, 16); bm.lineTo(46, 30); bm.lineTo(50, 30); bm.lineTo(50, -30); bm.lineTo(46, -30); bm.lineTo(8, -16); bm.closePath();
-      bm.holes = [circlePath(30, 0, 4), circlePath(42, 18, 2), circlePath(42, -18, 2)];
-      this._mesh(plateGeom(bm, 2.5, 8, 0.2), [M.carbon, M.carbonSide], G);
+      bump.absellipse(62.5, 0, 19, 81.5, 0, Math.PI * 2, false, 0);
+      this._mesh(plateGeom(bump, 11, 3.2, 2, 64), M.foam, G);
+      const lowerMount = roundRect(14, -14, 50, 14, 4);
+      lowerMount.holes = [circlePath(18.9, 5.6, 1.6), circlePath(18.9, -5.6, 1.6), circlePath(32, 0, 2.5)];
+      this._mesh(plateGeom(lowerMount, 1, top, 0.15), M.alu, G);
+      const brace = new THREE.Shape();
+      const bh = [[10, 0], [10, 10], [28, 7.5], [37, 9.5], [39.5, 38], [43, 45.5], [48.5, 46.5], [53.5, 42], [53, 12], [57, 4], [57, 0]];
+      bh.forEach(([x, y], i) => { if (i === 0) brace.moveTo(x, y); else brace.lineTo(x, y); });
+      for (let i = bh.length - 2; i > 0; i--) brace.lineTo(bh[i][0], -bh[i][1]);
+      brace.closePath();
+      brace.holes = [circlePath(44.6, 35, 1.7), circlePath(44.6, -35, 1.7), circlePath(18.9, 5.6, 1.6), circlePath(18.9, -5.6, 1.6),
+        slotPath(43, 13, 50, 27), slotPath(43, -27, 50, -13), circlePath(30, 0, 2.6), circlePath(48, 0, 3.2), slotPath(14, -2, 24, 2)];
+      this._mesh(plateGeom(brace, 2.5, 14.2, 0.2, 12), [M.carbon, M.carbonSide], G);
+      const centre = new THREE.Shape();      // aluminium centre piece (silver in the photos)
+      centre.moveTo(20, 0); centre.lineTo(26, 6); centre.lineTo(44, 6); centre.lineTo(50, 0); centre.lineTo(44, -6); centre.lineTo(26, -6); centre.closePath();
+      centre.holes = [circlePath(30, 0, 1.6), circlePath(42, 0, 1.6)];
+      this._mesh(plateGeom(centre, 1.6, 16.7, 0.2), M.silver, G);
+      const standoff = this._mesh(new THREE.CylinderGeometry(3, 3, 14.2 - top - 1, 16), M.alu, G);
+      standoff.rotation.x = Math.PI / 2; standoff.position.set(32, 0, (14.2 + top + 1) / 2);
       for (const sg of [1, -1]) {
-        const fp = this._mesh(new THREE.CylinderGeometry(2.4, 2.6, 50, 16), M.composite, G);
-        fp.rotation.x = Math.PI / 2; fp.position.set(26, sg * 26, 10.5 + 25);
+        const fp = this._mesh(new THREE.CylinderGeometry(2.6, 2.8, 46, 16), M.composite, G);
+        fp.rotation.x = Math.PI / 2; fp.position.set(44.6, sg * 35, 16.7 + 23);
+        const cap = this._mesh(new THREE.CylinderGeometry(3.6, 3.6, 2, 16), M.composite, G);
+        cap.rotation.x = Math.PI / 2; cap.position.set(44.6, sg * 35, 17.7);
         const rp = this._mesh(new THREE.CylinderGeometry(1.8, 1.8, 58, 12), M.composite, G);
-        rp.rotation.z = Math.PI / 2; rp.position.set(-WB - 39, sg * 47, 39);
+        rp.rotation.z = Math.PI / 2; rp.position.set(-WB - 39, sg * 50, 39);
         const rb = this._mesh(new THREE.BoxGeometry(10, 8, 6), M.alu, G);
-        rb.position.set(-WB - 8, sg * 47, 38.5);
+        rb.position.set(-WB - 8, sg * 50, 38.5);
       }
-      // ---- nickel-plated button screws on the top side ----
-      const screwG = new THREE.CylinderGeometry(2.7, 2.7, 1.5, 14);
+      // ---- bronze screws on the top side ----
+      const screwG = new THREE.CylinderGeometry(2.5, 2.5, 1.4, 14);
       const screwPos = [];
-      for (const xa of [0, -WB]) for (const dx of [-7, 7]) screwPos.push([xa + dx, 0, 38.5 + 0.75]);
-      for (const x of [-30, -60, -90, xLs - 20, -170, -200, -230]) screwPos.push([x, 0, 40.5 + 0.75]);
-      for (const sp of screwPos) { const sc = this._mesh(screwG, M.screw, G); sc.rotation.x = Math.PI / 2; sc.position.set(...sp); }
+      for (const xa of [0, -WB]) for (const dx of [-7, 7]) screwPos.push([xa + dx, 0, 38.5 + 0.7]);
+      for (const x of [-30, -60, -90, xLs - 20, -170, -200, -230]) screwPos.push([x, 0, 40.5 + 0.7]);
+      for (const sp of screwPos) { const sc = this._mesh(screwG, M.bronze, G); sc.rotation.x = Math.PI / 2; sc.position.set(...sp); }
+    }
+
+    /**
+     * SP2 chassis plate: outline and every hole measured from the manual's bottom view
+     * (2.07 px/mm, wheelbase 257 mm). Countersinks are cut as a 6 mm step on the underside over
+     * a 3 mm through hole; flat-head screws sit in the holes the drawing shows fitted.
+     */
+    _sp2Plate(G, t, WB, plateMat) {
+      const M = this.M, dWB = WB - 257;
+      this._tag = 'plate';
+      const X = (x) => (x < -128.5 ? x - dWB : x);              // the rear half follows the wheelbase setting
+      const half = PLATE_SP2.half.map(([x, y]) => [X(x), y]);
+      const outline = () => {
+        const shp = new THREE.Shape();
+        half.forEach(([x, y], i) => { if (i === 0) shp.moveTo(x, y); else shp.lineTo(x, y); });
+        for (let i = half.length - 2; i > 0; i--) shp.lineTo(half[i][0], -half[i][1]);
+        shp.closePath();
+        return shp;
+      };
+      const lower = outline(), upper = outline(), screws = [];
+      for (const [x0, y, k, a, b, screw] of PLATE_SP2.holes) {
+        const x = X(x0);
+        if (k === 'cs') {
+          lower.holes.push(circlePath(x, y, a / 2));
+          upper.holes.push(circlePath(x, y, b / 2));
+          if (screw) screws.push([x, y]);
+        } else if (k === 'h') {
+          lower.holes.push(circlePath(x, y, a / 2)); upper.holes.push(circlePath(x, y, a / 2));
+        } else if (k === 'slot') {
+          for (const sh of [lower, upper]) sh.holes.push(slotPath(x - a / 2, y - b / 2, x + a / 2, y + b / 2));
+        } else if (k === 'dots') {
+          // seven 1 mm vent holes in a hexagon
+          const pts = [[0, 0]].concat([0, 1, 2, 3, 4, 5].map((i) => [Math.cos(i * Math.PI / 3) * 2.1, Math.sin(i * Math.PI / 3) * 2.1]));
+          for (const [dx, dy] of pts) for (const sh of [lower, upper]) sh.holes.push(circlePath(x + dx, y + dy, 0.5));
+        }
+      }
+      const tl = Math.min(1, t * 0.45);                         // countersink depth
+      this._mesh(plateGeom(lower, tl, 0, 0.15, 10), plateMat, G);
+      this._mesh(plateGeom(upper, t - tl, tl, 0.15, 10), plateMat, G);
+      // flat-head screws, merged into one mesh: head in the countersink, hex socket
+      const head = new THREE.CylinderGeometry(2.55, 1.6, tl * 0.92, 18); head.rotateX(Math.PI / 2);
+      const sock = new THREE.CylinderGeometry(0.9, 0.9, 0.12, 6); sock.rotateX(Math.PI / 2);
+      const parts = [], parts2 = [];
+      for (const [x, y] of screws) {
+        parts.push([head, new THREE.Matrix4().makeTranslation(x, y, tl * 0.46 + 0.02)]);
+        parts2.push([sock, new THREE.Matrix4().makeTranslation(x, y, 0.0)]);
+      }
+      if (parts.length) { this._mesh(mergeGeoms(parts), M.screw, G); this._mesh(mergeGeoms(parts2), M.screwBlack, G); }
+      this._tag = 'chassis';
     }
 
     _buildCorners(model) {
@@ -825,9 +983,9 @@
           // window between the legs: the shock post rises through it
           armShape.holes = [new THREE.Path([[10.8, 8.5], [11, 32], [7.5, 33.6], [2.5, 33.4], [-0.8, 30], [-2.4, 24], [-3.6, 15], [-2.6, 9.5], [3.5, 7.2]].map(([u, v]) => U2(u, v)).reverse())];
         }
-        const armGeom = EX(armShape, 3.5, 0.5, 8);
+        const armGeom = EX(armShape, 3.5, 0.35, 8);
         armGeom.translate(0, 0, -2.2);
-        this._mesh(armGeom, M.composite, c.arm);
+        this._mesh(armGeom, [M.carbon, M.carbonSide], c.arm);      // carbon lower arms (photos)
         const cupG = EX(roundRect(-4.5, -4.2, 4.5, 4.2, 1.6), 6, 0.5, 6);
         cupG.translate(0, 0, -3.2);
         for (const du of [cs, -cs]) {   // square inner ball cups with the pivot ball inside
@@ -853,11 +1011,12 @@
         c.hub = new THREE.Group(); g.add(c.hub);
         const loc = (p) => mtv(S0.Rb, sub(p, S0.W));
         const lO = loc(S0.O), lB = loc(S0.B);
-        const housing = this._mesh(new THREE.CylinderGeometry(8.6, 8.6, 9, 28), M.alu, c.hub); housing.position.set(0, -8.5, 0);
-        c.hub.add(beam([lO[0], lO[1] + 2, lO[2] + 3], [0, -8, -5], 7, 5, M.alu, [1, 0, 0]));
-        c.hub.add(beam([0, -8, 5], [lB[0], lB[1] + 1, lB[2] - 3], 6, 4.5, M.alu, [1, 0, 0]));
+        const housing = this._mesh(new THREE.CylinderGeometry(8.6, 8.6, 9, 28), M.composite, c.hub); housing.position.set(0, -8.5, 0);
+        c.hub.add(beam([lO[0], lO[1] + 2, lO[2] + 3], [0, -8, -5], 7, 5, M.composite, [1, 0, 0]));
+        c.hub.add(beam([0, -8, 5], [lB[0], lB[1] + 1, lB[2] - 3], 6, 4.5, M.composite, [1, 0, 0]));
+        const bearing = this._mesh(new THREE.CylinderGeometry(6.2, 6.2, 9.4, 24, 1, true), M.bronze, c.hub); bearing.position.set(0, -8.5, 0);
         for (const p of [lO, lB]) {
-          const boss = this._mesh(new THREE.CylinderGeometry(4.2, 4.2, 5, 18), M.alu, c.hub); boss.position.set(p[0], p[1], p[2]);
+          const boss = this._mesh(new THREE.CylinderGeometry(4.2, 4.2, 5, 18), M.composite, c.hub); boss.position.set(p[0], p[1], p[2]);
           const bl = this._mesh(new THREE.SphereGeometry(2.45, 16, 12), M.steel, c.hub); bl.position.set(p[0], p[1], p[2]);
         }
         c.hub.children.forEach((o) => { if (o.isMesh) { o.castShadow = true; o.userData.realMat = o.material; o.userData.tag = 'hub'; o.userData.axle = C.axle; } });
@@ -873,7 +1032,7 @@
         this._tag = 'wheel';
         const axle = this._mesh(new THREE.CylinderGeometry(2.5, 2.5, 21, 14), M.steel, c.hub); axle.position.set(0, 1.5, 0);
         const hex = this._mesh(new THREE.CylinderGeometry(6.4, 6.4, 4, 6), M.screwBlack, c.hub); hex.position.set(0, 4.4, 0);
-        const nut = this._mesh(new THREE.CylinderGeometry(4.4, 4.4, 3.4, 12), M.orange, c.hub); nut.position.set(0, 10.4, 0);
+        const nut = this._mesh(new THREE.CylinderGeometry(4.4, 4.4, 3.4, 6), M.alu, c.hub); nut.position.set(0, 10.4, 0);
         // wheel (white dish) and rubber tyre, lathed about the spin axis (local y)
         const R = model.setup.car.tireDia / 2, W = model.setup.car.tireWidth, rr = 26.2;
         const tp = [[rr, -W / 2], [R - 3.5, -W / 2], [R - 0.8, -W / 2 + 1.2], [R, -W / 2 + 4], [R, W / 2 - 4], [R - 0.8, W / 2 - 1.2], [R - 3.5, W / 2], [rr, W / 2]].map(([r, y]) => new THREE.Vector2(r, y));
@@ -894,53 +1053,81 @@
         {
           const L = c.upperLen, bulge = 5;
           const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(L / 2, bulge, 0), new THREE.Vector3(L, 0, 0));
-          const sec = roundRect(-1.8, -3, 1.8, 3, 1.2);
+          const sec = roundRect(-2.4, -3.6, 2.4, 3.6, 1.6);
           const ug = new THREE.ExtrudeGeometry(sec, { steps: 24, bevelEnabled: false, extrudePath: curve });
-          this._mesh(ug, M.alu, c.upper);
-          for (const x of [0, L]) { const cupm = this._mesh(new THREE.CylinderGeometry(4, 4, 6, 18), M.alu, c.upper); cupm.position.set(x, 0, 0); cupm.rotation.x = Math.PI / 2; }
-          const adj = this._mesh(new THREE.CylinderGeometry(2.2, 2.2, 3, 6), M.titanium, c.upper); adj.position.set(L - 7, 0, 3.4);
-          const stop = this._mesh(new THREE.CylinderGeometry(1.25, 1.25, 14, 8), M.screw, c.upper); stop.position.set(L - 11, 0, 9);
-          stop.rotation.x = Math.PI / 2;
+          this._mesh(ug, M.composite, c.upper);
+          const cin = this._mesh(new THREE.CylinderGeometry(4.3, 4.3, 7, 20), M.composite, c.upper); cin.position.set(0, 0, 0.5); cin.rotation.x = Math.PI / 2;
+          const post = this._mesh(new THREE.CylinderGeometry(4.2, 4.2, 11, 20), M.composite, c.upper); post.position.set(L, 0, 2.5); post.rotation.x = Math.PI / 2;
+          const stop = this._mesh(new THREE.CylinderGeometry(1.2, 1.2, 15, 10), M.steel, c.upper); stop.position.set(L, 0, 14); stop.rotation.x = Math.PI / 2;
+          const sh = this._mesh(new THREE.CylinderGeometry(2.6, 2.6, 1.8, 16), M.screwBlack, c.upper); sh.position.set(L, 0, 21.5); sh.rotation.x = Math.PI / 2;
+          const adj = this._mesh(new THREE.CylinderGeometry(2.2, 2.2, 3.2, 6), M.screwBlack, c.upper); adj.position.set(L - 8, 0, 4.4); adj.rotation.x = Math.PI / 2;
         }
         const link = (r, mat) => this._mesh(unitCyl(r, 10), mat, g);
         this._tag = 'drive';
-        c.drive = link(1.7, M.steel);
-        c.driveCupIn = this._mesh(new THREE.SphereGeometry(4.2, 14, 10), M.steel, g);
+        c.drive = link(1.7, M.screwBlack);
+        c.driveCupIn = this._mesh(new THREE.SphereGeometry(4.2, 14, 10), M.alu, g);
         if (H.rocker) {
           this._tag = 'push';
-          c.push = link(1.3, M.steel);
-          c.pushCup = this._mesh(new THREE.SphereGeometry(3, 12, 10), M.pom, g);
-          // rocker in its pivot frame (axis along x); holes along the pushrod arm
+          c.push = link(1.25, M.screwBlack);
+          c.pushCup = this._mesh(new THREE.SphereGeometry(2.9, 12, 10), M.pom, g);
+          // bronze rocker, viewed along its axis a "dog-bone": pushrod holes up top, bearing in the middle,
+          // shock mount below (manual step 8, photos)
           const rk = H.rocker, hd = norm(rk.holeDir), hs = rk.holes, sa = rk.shockArm;
-          const tip = mul(hd, hs.high + 2.5);
-          const rs = new THREE.Shape();
-          const o2 = [[0, 0], [tip[1], tip[2]], [sa[1], sa[2]]];
-          const hull = (pts, r) => { const sh = new THREE.Shape(); const steps = 40; const ang = []; for (const p of pts) for (let k = 0; k < steps; k++) { const a = k / steps * Math.PI * 2; ang.push([p[0] + r * Math.cos(a), p[1] + r * Math.sin(a)]); } ang.sort((a, b) => a[0] - b[0] || a[1] - b[1]); const lo = [], up = []; const crs = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); for (const p of ang) { while (lo.length >= 2 && crs(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); } for (let k = ang.length - 1; k >= 0; k--) { const p = ang[k]; while (up.length >= 2 && crs(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); } const hp = lo.slice(0, -1).concat(up.slice(0, -1)); hp.forEach((p, k) => { if (k === 0) sh.moveTo(p[0], p[1]); else sh.lineTo(p[0], p[1]); }); sh.closePath(); return sh; };
-          const rshape = hull(o2, 4);
-          rshape.holes = [circlePath(0, 0, 1.5)].concat(['low', 'mid', 'high'].map((h) => circlePath(hd[1] * hs[h], hd[2] * hs[h], 1.05)));
-          void rs;
+          const hull = (pts) => {
+            const all = [];
+            for (const [cx, cy, r] of pts) for (let k = 0; k < 36; k++) { const a = k / 36 * Math.PI * 2; all.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
+            all.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+            const crs = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+            const lo = [], up = [];
+            for (const q of all) { while (lo.length >= 2 && crs(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+            for (let k = all.length - 1; k >= 0; k--) { const q = all[k]; while (up.length >= 2 && crs(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+            return new THREE.Shape(lo.slice(0, -1).concat(up.slice(0, -1)).map(([x, y]) => new THREE.Vector2(x, y)));
+          };
+          const top = [hd[1] * (hs.high + 1.6), hd[2] * (hs.high + 1.6)], bot = [sa[1], sa[2]];
+          const upperR = hull([[0, 0, 4.6], [top[0], top[1], 2.9]]);
+          upperR.holes = [circlePath(0, 0, 3)].concat(['low', 'mid', 'high'].map((h) => circlePath(hd[1] * hs[h], hd[2] * hs[h], 1.05)));
+          const lowerR = hull([[0, 0, 4.6], [bot[0], bot[1], 3.3]]);
+          lowerR.holes = [circlePath(0, 0, 3), circlePath(bot[0], bot[1], 1.3)];
           this._tag = 'rocker';
           c.rocker = new THREE.Group(); g.add(c.rocker);
-          this._mesh(frontGeom(rshape, 3, -1.5, 0.3, 10), M.aluLight, c.rocker);
+          this._mesh(frontGeom(upperR, 4, -2, 0.35, 10), M.bronze, c.rocker);
+          this._mesh(frontGeom(lowerR, 4, -2, 0.35, 10), M.bronze, c.rocker);
+          const brg = this._mesh(new THREE.CylinderGeometry(3, 3, 4.2, 20), M.screwBlack, c.rocker); brg.rotation.z = Math.PI / 2;
+          const pin = this._mesh(new THREE.CylinderGeometry(1.1, 1.1, 7, 10), M.steel, c.rocker); pin.rotation.z = Math.PI / 2; pin.position.set(0, hd[1] * hs[A.rocker], hd[2] * hs[A.rocker]);
+          const lowSec = this._mesh(new THREE.CylinderGeometry(3.3, 3.3, Math.abs(sa[0]) + 4, 18), M.bronze, c.rocker);
+          lowSec.rotation.z = Math.PI / 2; lowSec.position.set(sa[0] / 2, bot[0], bot[1]);
+          // coaxial shock: top eye in the rocker, threaded body with knurled collar and caps, short XS spring,
+          // finned retainer and lower ball cup on the 2112 post (manual step 11 exploded view)
           this._tag = 'shock';
-          c.shockBody = this._mesh(new THREE.CylinderGeometry(3.9, 3.9, 1, 24), M.alu, g);
-          c.shockCap = this._mesh(new THREE.CylinderGeometry(4.4, 4.4, 1, 24), M.orange, g);
-          c.shockShaft = link(1.2, M.steel);
-          c.spring = this._mesh(helixGeometry(4.3, 0.5, 5, 160), M.spring, g);
-          c.collar = this._mesh(new THREE.CylinderGeometry(4.9, 4.9, 1, 24), M.orange, g);
-          c.eye = this._mesh(new THREE.SphereGeometry(2.4, 12, 10), M.pom, g);
-          c.eyePin = link(1.2, M.steel);
+          const V2 = (r, y) => new THREE.Vector2(r, y);
+          c.shTop = new THREE.Group(); g.add(c.shTop);
+          c.shBot = new THREE.Group(); g.add(c.shBot);
+          const eye = this._mesh(new THREE.CylinderGeometry(2.6, 2.6, 4, 16), M.alu, c.shTop); eye.rotation.z = Math.PI / 2;
+          const tab = this._mesh(new THREE.CylinderGeometry(2.2, 2.6, 5, 14), M.alu, c.shTop); tab.position.y = 2.5;
+          const capT = this._mesh(new THREE.CylinderGeometry(7.0, 7.0, 2.6, 28), M.alu, c.shTop); capT.position.y = 6.3;
+          const body = [];
+          for (let k = 0; k <= 22; k++) body.push(V2(k % 2 ? 6.0 : 6.45, 7.6 + k * 0.55));
+          this._mesh(new THREE.LatheGeometry([V2(0.01, 7.6)].concat(body, [V2(0.01, 7.6 + 22 * 0.55)]), 32), M.alu, c.shTop);
+          const collar = this._mesh(new THREE.CylinderGeometry(7.8, 7.8, 2.4, 30), M.alu, c.shTop); collar.position.y = 9.7;
+          const capB = this._mesh(new THREE.CylinderGeometry(6.6, 6.6, 2, 28), M.alu, c.shTop); capB.position.y = 20.7;
+          c.shSpringFrom = 10.8; c.shBodyEnd = 21.7;
+          const shaft = this._mesh(new THREE.CylinderGeometry(1.5, 1.5, 16, 12), M.steel, c.shBot); shaft.position.y = -13;
+          this._mesh(new THREE.LatheGeometry([V2(0.01, -6.2), V2(7.4, -6.2), V2(7.4, -5.6), V2(3, -3.6), V2(0.01, -3.6)], 24), M.alu, c.shBot);
+          const cup = this._mesh(new THREE.CylinderGeometry(2.9, 2.9, 4.4, 16), M.pom, c.shBot); cup.position.y = -1.8;
+          const ballL = this._mesh(new THREE.SphereGeometry(2.4, 14, 10), M.steel, c.shBot);
+          c.spring = this._mesh(helixGeometry(7.1, 0.85, 4.5, 180), M.spring, g);
+          c.shSpringTo = 6.2;
         } else {
           this._tag = 'shock';
           c.strut = link(4.5, M.alu);
         }
         if (S0.ball) {
           this._tag = 'steer';
-          c.rod = link(1.6, M.titanium);
+          c.rod = link(1.5, M.bronze);       // turnbuckle
           c.rodCups = [0, 1].map(() => this._mesh(new THREE.CylinderGeometry(3.1, 3.1, 7, 14), M.pom, g));
         }
         this._tag = 'arb';
-        c.arbLink = link(1.1, M.titanium);
+        c.arbLink = link(1.5, M.pom);       // ball cup on the end of the bar
         this.corners.push(c);
       }
       this._tag = 'steer'; this._axle = 'front';
@@ -1002,20 +1189,12 @@
           placeBetween(c.push, mm(rk.ball), mm(rk.push));
           c.pushCup.position.set(...mm(rk.ball));
           setFrame(c.rocker, rk.Rr, rk.pivot, !left);
-          // laid-down shock: body pinned on the 2112 post, shaft to the rocker's lower eye
-          const xs = this._shockX(C), eyeR = mm(rk.shock);
-          const top = mm([xs, C.shockTop[1], C.shockTop[2]]), eye = [xs, eyeR[1], eyeR[2]];
-          const d = norm(sub(eye, top)), Ls = len(sub(eye, top));
-          const bodyLen = Math.min(15, Ls * 0.5);
-          const bodyEnd = add(top, mul(d, bodyLen));
-          placeBetween(c.shockBody, add(top, mul(d, 1)), bodyEnd);
-          placeBetween(c.shockCap, add(top, mul(d, -1.5)), add(top, mul(d, 2)));
-          placeBetween(c.shockShaft, bodyEnd, eye);
-          const collarAt = add(top, mul(d, bodyLen * 0.6));
-          placeBetween(c.collar, collarAt, add(collarAt, mul(d, 1.6)));
-          placeBetween(c.spring, add(collarAt, mul(d, 1.6)), add(eye, mul(d, -2.4)));
-          c.eye.position.set(...eye);
-          placeBetween(c.eyePin, eyeR, eye);
+          // shock: top eye in the rocker's lower section, lower ball cup on the 2112 post
+          const topP = mm(rk.shock), botP = mm(C.shockTop);
+          const d = norm(sub(botP, topP)), q = new THREE.Quaternion().setFromUnitVectors(UPY, V(d));
+          c.shTop.position.set(...topP); c.shTop.quaternion.copy(q);
+          c.shBot.position.set(...botP); c.shBot.quaternion.copy(q);
+          placeBetween(c.spring, add(topP, mul(d, c.shSpringFrom)), add(botP, mul(d, -c.shSpringTo)));
         } else if (c.strut) {
           placeBetween(c.strut, mm(st.shockLow), mm(C.shockTop));
         }
@@ -1026,11 +1205,11 @@
           placeBetween(c.rodCups[0], a, add(a, mul(dd, 6)));
           placeBetween(c.rodCups[1], add(b, mul(dd, -6)), b);
         }
-        // anti-roll bar link: bar end above the arm ball down to the ball
+        // anti-roll bar: ball cup from the bar end to the ball under the arm
         const ar = this.arb && this.arb[C.axle];
         if (ar) {
-          const ballW = mm(st.arbPt);
-          placeBetween(c.arbLink, [ballW[0], ballW[1], ar.zb], ballW);
+          const ballW = mm(st.arbPt), endW = mm([ar.ballX - (C.isF ? 2 : -2), ar.yEnd, ar.zb]);
+          placeBetween(c.arbLink, endW, ballW);
         }
       }
       for (const um of this.uMounts || []) {
@@ -1128,7 +1307,7 @@
       if (!m.userData.realMat) m.userData.realMat = m.material;
       m.material = this.BP.fill;
       if (!m.userData.edges) {
-        const eg = new THREE.EdgesGeometry(m.geometry, 28);
+        const eg = new THREE.EdgesGeometry(edgeSource(m.geometry), 28);
         const ls = new THREE.LineSegments(eg, this.BP.line);
         ls.raycast = () => {};
         m.add(ls);

@@ -783,7 +783,7 @@
     toe: ['steer'], ackInset: ['steer'], armLength: ['steer'], plateY: ['steer'], plateDX: ['steer'], ballSpacer: ['steer'], plateSpacer: ['steer'], lock: ['steer', 'wheel'],
     wheelSpacer: ['wheel'], tireDia: ['wheel'], tireWidth: ['wheel'],
     spring: ['shock'], rocker: ['rocker', 'push', 'shock'], shockArm: ['shock'], shockTowerY: ['shock'], swayBar: ['arb'],
-    chassis: ['chassis'], wheelbase: ['chassis'],
+    chassis: ['plate'], wheelbase: ['plate', 'chassis'],
   };
   function flashPart(path) {
     if (state.view !== '3d') return;

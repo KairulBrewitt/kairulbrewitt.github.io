@@ -198,16 +198,20 @@
       kpLow: [0, 0, 0], kpLen: 36,            // lower ball to upper ball (both arm ends ~41-42 mm up in the front view)
       wheel: [0, 14.05, 20.5],                // wheel centre from the lower ball; y sets the 190 mm width
       ballZ: 9,
-      arbArm: 13.5, arbArmU: 7.7, arbArmZ: 2, arbLever: 14, arbSpan: 60,
+      arbArm: 13.5, arbArmU: 7.7, arbArmZ: -3, arbLever: 14, arbSpan: 60,
       bellcrank: 15, plateX: -14, plateZ: 15.1,  // rack ball height: ~zero bump steer with the kit 0.5 mm spacers
       kpi: 10,
+      // Rocker on the outer face of the bulkhead (manual step 8, photos), axis fore-aft, pivot level
+      // with the axle. The shock's top eye slides into the rocker's lower section; its lower ball cup
+      // sits on the 2112 bulkhead mount, whose post rises through the lower-arm window. In plan the
+      // shock runs diagonally from the rocker forward of the bulkhead back to that post (bottom view).
       rocker: {
-        dx: 6.4, y: 16, z: 25,               // pivot in line with the pushrod ball (dx from the arm pivot centre), axis fore-aft
-        holeDir: [0, 0.84, 0.55], holes: { low: 7.5, mid: 9.0, high: 10.5 },   // long front rocker
-        shockArm: [0, -2.4, -15.4],          // shock eye relative to the pivot
-        mountY: 44, mountZ: 11.8,            // shock body pinned to the bulkhead mount (laid down)
+        dx: 18, y: 13, z: 29.5,              // pivot (dx from the arm pivot centre), on a standoff from the bulkhead face
+        holeDir: [0, 0.6, 0.8], holes: { low: 7.5, mid: 9.0, high: 10.5 },     // long front rocker
+        shockArm: [0, -1.5, -13.5],          // shock top eye relative to the pivot
+        mountX: 5, mountY: 43.5, mountZ: 16, // shock lower ball on the 2112 post
         ball: [6.4, 38.5, 3],                // pushrod ball on the arm (u, v, w)
-        pushrod: 38.7,                       // short front pushrod (rocker at its design angle at 5 mm ride height)
+        pushrod: 47.59,                      // front pushrod: rocker at its design angle at the kit ride height
       },
     },
     rear: {
@@ -216,17 +220,17 @@
       kpLow: [0, 0, 0], kpLen: 36,
       wheel: [0, 14.22, 20.5],
       toeLink: true,
-      steerArm: [-12, -6, 8],
-      toeLinkIn: [-16, 22, 14.8],             // toe-link inner ball: mild toe-in in bump
-      arbArm: 13.5, arbArmU: -7.7, arbArmZ: 2, arbLever: 14, arbSpan: 60,
+      steerArm: [-12, -6, 18],               // toe-link ball on the hub, level with the inner ball (rear photo: links at axle height)
+      toeLinkIn: [-16, 22, 24.8],             // toe-link inner ball: mild toe-in in bump
+      arbArm: 13.5, arbArmU: -7.7, arbArmZ: -3, arbLever: 14, arbSpan: 60,
       kpi: 10,
       rocker: {
-        dx: -6.4, y: 16, z: 25,
-        holeDir: [0, 0.84, 0.55], holes: { low: 6.0, mid: 7.5, high: 9.0 },    // short rear rocker
-        shockArm: [0, -2.4, -15.4],
-        mountY: 44, mountZ: 11.8,
+        dx: -18, y: 13, z: 29.5,
+        holeDir: [0, 0.6, 0.8], holes: { low: 6.0, mid: 7.5, high: 9.0 },      // short rear rocker
+        shockArm: [0, -1.5, -13.5],
+        mountX: -5, mountY: 43.5, mountZ: 16,
         ball: [-6.4, 38.5, 3],
-        pushrod: 39.3,                       // long rear pushrod
+        pushrod: 47.60,                      // rear pushrod
       },
     },
     chassis: { halfWidth: 40.3, front: 24, rear: 22, thick: 2.2 },
@@ -307,12 +311,12 @@
         car: { mass: 1380, frontPct: 49, cgHeight: 21, wheelbase: 257, tireDia: 64, tireWidth: 24, tireRate: 10, frontDiff: 'spool', model: 'sp2', chassis: 'carbon' },
         front: {
           rideHeight: 5.0, camber: -1.5, toe: 0.0, droop: 3.0, linkInZ: 41.0, linkInY: 19.5, linkOutSpacer: 1.0, pivotZ: 7.0,
-          kickup: 0.0, caster: 4.0, kpi: 10.0, wheelSpacer: 0.0, spring: 0.25, swayBar: 1.1, rocker: 'low',
+          kickup: 0.0, caster: 4.0, kpi: 10.0, wheelSpacer: 0.0, spring: 0.33, swayBar: 1.1, rocker: 'low',
           ackInset: 8.0, armLength: 12.5, plateY: 19.0, plateDX: 0.0, ballSpacer: 0.5, plateSpacer: 0.5, lock: 27,
         },
         rear: {
           rideHeight: 5.0, camber: -2.0, toe: 2.0, droop: 4.0, linkInZ: 41.0, linkInY: 19.5, linkOutSpacer: 1.0, pivotZ: 7.5,
-          antiSquat: 2.0, caster: -2.5, ballSpacer: 0.5, wheelSpacer: 0.0, spring: 0.27, swayBar: 1.1, rocker: 'low',
+          antiSquat: 2.0, caster: -2.5, ballSpacer: 0.5, wheelSpacer: 0.0, spring: 0.36, swayBar: 1.1, rocker: 'low',
         },
       },
       src: {
@@ -440,7 +444,7 @@
       ball: H.rocker.ball.slice(),
       Lp: H.rocker.pushrod,
     } : null;
-    const shockTop = RK ? [x0 + H.rocker.dx, H.rocker.mountY, H.rocker.mountZ] : [x0, A.shockTowerY, H.shockTowerZ];
+    const shockTop = RK ? [x0 + (H.rocker.mountX !== undefined ? H.rocker.mountX : H.rocker.dx), H.rocker.mountY, H.rocker.mountZ] : [x0, A.shockTowerY, H.shockTowerZ];
     const shockLoc = [0, A.shockArm, H.shockArmZ];   // arm frame, relative to inner pin
     const arbLoc = [H.arbArmU || 0, H.arbArm, H.arbArmZ];
     const sLoc = [0, 1, 0];
