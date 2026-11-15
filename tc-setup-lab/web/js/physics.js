@@ -194,29 +194,29 @@
     front: {
       innerY: 17, armLen: 52.5, armU: 12.5,   // outer ball 12.5 mm forward of the pivot centre
       cupSpan: 23,                            // distance between the two inner ball cups
-      upperOnKingpin: true, upperInX: -22,    // upper-arm inner ball sits behind the hub top
+      upperOnKingpin: true, upperInX: 0,      // upper wishbone: inner balls on both bulkhead towers (axis through x0)
       kpLow: [0, 0, 0], kpLen: 36,            // lower ball to upper ball (both arm ends ~41-42 mm up in the front view)
       wheel: [0, 14.05, 20.5],                // wheel centre from the lower ball; y sets the 190 mm width
       ballZ: 9,
       arbArm: 13.5, arbArmU: 7.7, arbArmZ: -3, arbLever: 14, arbSpan: 60,
-      bellcrank: 15, plateX: -14, plateZ: 15.1,  // rack ball height: ~zero bump steer with the kit 0.5 mm spacers
+      bellcrank: 15, plateX: -14, plateZ: 14.55, // rack ball height: ~zero bump steer with the kit 0.5 mm spacers
       kpi: 10,
       // Rocker on the outer face of the bulkhead (manual step 8, photos), axis fore-aft, pivot level
       // with the axle. The shock's top eye slides into the rocker's lower section; its lower ball cup
       // sits on the 2112 bulkhead mount, whose post rises through the lower-arm window. In plan the
       // shock runs diagonally from the rocker forward of the bulkhead back to that post (bottom view).
       rocker: {
-        dx: 18, y: 13, z: 29.5,              // pivot (dx from the arm pivot centre), on a standoff from the bulkhead face
+        dx: 23.5, y: 11.5, z: 27.8,          // pivot on the bulkhead nose's front face (manual side view of the bulkhead)
         holeDir: [0, 0.6, 0.8], holes: { low: 7.5, mid: 9.0, high: 10.5 },     // long front rocker
         shockArm: [0, -1.5, -13.5],          // shock top eye relative to the pivot
         mountX: 5, mountY: 43.5, mountZ: 16, // shock lower ball on the 2112 post
         ball: [6.4, 38.5, 3],                // pushrod ball on the arm (u, v, w)
-        pushrod: 47.59,                      // front pushrod: rocker at its design angle at the kit ride height
+        pushrod: 49.53,                      // front pushrod: rocker at its design angle at the kit ride height
       },
     },
     rear: {
       innerY: 17, armLen: 52.5, armU: -12.5, cupSpan: 23,
-      upperOnKingpin: true, upperInX: 22,
+      upperOnKingpin: true, upperInX: 0,
       kpLow: [0, 0, 0], kpLen: 36,
       wheel: [0, 14.22, 20.5],
       toeLink: true,
@@ -225,12 +225,12 @@
       arbArm: 13.5, arbArmU: -7.7, arbArmZ: -3, arbLever: 14, arbSpan: 60,
       kpi: 10,
       rocker: {
-        dx: -18, y: 13, z: 29.5,
+        dx: -23.5, y: 11.5, z: 27.8,
         holeDir: [0, 0.6, 0.8], holes: { low: 6.0, mid: 7.5, high: 9.0 },      // short rear rocker
         shockArm: [0, -1.5, -13.5],
         mountX: -5, mountY: 43.5, mountZ: 16,
         ball: [-6.4, 38.5, 3],
-        pushrod: 47.60,                      // rear pushrod
+        pushrod: 49.60,                      // rear pushrod
       },
     },
     chassis: { halfWidth: 40.3, front: 24, rear: 22, thick: 2.2 },
@@ -260,7 +260,7 @@
     'front.toe':         { v: -0.5, min: -3.0, max: 2.0,  step: 0.1,  unit: '°' },
     'front.droop':       { v: 2.0,  min: 0.5,  max: 7.0,  step: 0.1,  unit: 'mm' },
     'front.linkInZ':     { v: 27.0, min: 22,   max: 48,   step: 0.5,  unit: 'mm' },
-    'front.linkInY':     { v: 20.0, min: 12,   max: 32,   step: 0.5,  unit: 'mm' },
+    'front.linkInY':     { v: 20.0, min: 8,   max: 32,   step: 0.5,  unit: 'mm' },
     'front.linkOutSpacer': { v: 1.0, min: 0,   max: 4,    step: 0.5,  unit: 'mm' },
     'front.pivotZ':      { v: 6.5,  min: 5.0,  max: 9.0,  step: 0.25, unit: 'mm' },
     'front.kickup':      { v: 0.0,  min: -2.0, max: 4.0,  step: 0.25, unit: '°' },
@@ -284,7 +284,7 @@
     'rear.toe':         { v: 2.5,  min: 0.0,  max: 4.5,  step: 0.25, unit: '°' },
     'rear.droop':       { v: 2.5,  min: 0.5,  max: 7.0,  step: 0.1,  unit: 'mm' },
     'rear.linkInZ':     { v: 26.0, min: 22,   max: 48,   step: 0.5,  unit: 'mm' },
-    'rear.linkInY':     { v: 20.0, min: 12,   max: 32,   step: 0.5,  unit: 'mm' },
+    'rear.linkInY':     { v: 20.0, min: 8,   max: 32,   step: 0.5,  unit: 'mm' },
     'rear.linkOutSpacer': { v: 1.0, min: 0,   max: 4,    step: 0.5,  unit: 'mm' },
     'rear.pivotZ':      { v: 6.5,  min: 5.0,  max: 9.0,  step: 0.25, unit: 'mm' },
     'rear.antiSquat':   { v: 2.0,  min: 0.0,  max: 5.0,  step: 0.25, unit: '°' },
@@ -310,13 +310,13 @@
       setup: {
         car: { mass: 1380, frontPct: 49, cgHeight: 21, wheelbase: 257, tireDia: 64, tireWidth: 24, tireRate: 10, frontDiff: 'spool', model: 'sp2', chassis: 'carbon' },
         front: {
-          rideHeight: 5.0, camber: -1.5, toe: 0.0, droop: 3.0, linkInZ: 41.0, linkInY: 19.5, linkOutSpacer: 1.0, pivotZ: 7.0,
-          kickup: 0.0, caster: 4.0, kpi: 10.0, wheelSpacer: 0.0, spring: 0.33, swayBar: 1.1, rocker: 'low',
+          rideHeight: 5.0, camber: -1.5, toe: 0.0, droop: 3.0, linkInZ: 38.0, linkInY: 10.0, linkOutSpacer: 1.0, pivotZ: 7.0,
+          kickup: 0.0, caster: 4.0, kpi: 10.0, wheelSpacer: 0.0, spring: 0.41, swayBar: 1.1, rocker: 'low',
           ackInset: 8.0, armLength: 12.5, plateY: 19.0, plateDX: 0.0, ballSpacer: 0.5, plateSpacer: 0.5, lock: 27,
         },
         rear: {
-          rideHeight: 5.0, camber: -2.0, toe: 2.0, droop: 4.0, linkInZ: 41.0, linkInY: 19.5, linkOutSpacer: 1.0, pivotZ: 7.5,
-          antiSquat: 2.0, caster: -2.5, ballSpacer: 0.5, wheelSpacer: 0.0, spring: 0.36, swayBar: 1.1, rocker: 'low',
+          rideHeight: 5.0, camber: -2.0, toe: 2.0, droop: 4.0, linkInZ: 38.0, linkInY: 10.0, linkOutSpacer: 1.0, pivotZ: 7.5,
+          antiSquat: 2.0, caster: -2.5, ballSpacer: 0.5, wheelSpacer: 0.0, spring: 0.44, swayBar: 1.1, rocker: 'low',
         },
       },
       src: {
@@ -346,8 +346,8 @@
         'front.rocker': ['kit', 'Kit: pushrod in the lowest rocker hole (stiffest). The middle and top holes are softer.'],
         'rear.rocker': ['kit', 'Kit: pushrod in the lowest rocker hole (stiffest). The middle and top holes are softer.'],
         'car.chassis': ['kit', 'Kits come with a 2.2 mm carbon, 1.5 mm aluminium or 1.2 mm spring-steel chassis.'],
-        'front.linkInZ': ['est', 'From the manual’s front-view drawing: both ends of the upper arm sit about 41–42 mm above the chassis.'],
-        'rear.linkInZ': ['est', 'From the manual’s front-view drawing: both ends of the upper arm sit about 41–42 mm above the chassis.'],
+        'front.linkInZ': ['est', 'From the manual’s bulkhead drawings: the upper wishbone’s inner balls sit on the bulkhead towers, about 38 mm above the chassis.'],
+        'rear.linkInZ': ['est', 'From the manual’s bulkhead drawings: the upper wishbone’s inner balls sit on the bulkhead towers, about 38 mm above the chassis.'],
         'front.kpi': ['est', 'Read off the manual’s front-view drawing (about 10°).'],
       },
       info: [
