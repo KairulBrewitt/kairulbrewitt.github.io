@@ -371,7 +371,7 @@
       belt: S({ color: 0x232325, roughness: 0.85 }),
       foam: S({ color: 0x1d1e20, roughness: 1 }),
       brass: S({ color: 0xc9a14a, metalness: 1, roughness: 0.3 }),
-      spring: S({ color: 0x151517, metalness: 0.7, roughness: 0.32 }),
+      spring: S({ color: 0x1b1c1f, metalness: 0.85, roughness: 0.22, envMapIntensity: 1.6 }),
       aluChassis: S({ color: 0x1a1b1e, metalness: 0.7, roughness: 0.4 }),
       steelChassis: S({ color: 0x3b3d42, metalness: 0.92, roughness: 0.3 }),
       electronics: S({ color: 0x18181b, roughness: 0.5, metalness: 0.1 }),
@@ -1204,7 +1204,7 @@
           this._mesh(new THREE.LatheGeometry([V2(0.01, -6.2), V2(7.4, -6.2), V2(7.4, -5.6), V2(3, -3.6), V2(0.01, -3.6)], 24), M.alu, c.shBot);
           const cup = this._mesh(new THREE.CylinderGeometry(2.9, 2.9, 4.4, 16), M.pom, c.shBot); cup.position.y = -1.8;
           const ballL = this._mesh(new THREE.SphereGeometry(2.4, 14, 10), M.steel, c.shBot);
-          c.spring = this._mesh(helixGeometry(7.1, 0.85, 4.5, 180), M.spring, g);
+          c.spring = this._mesh(helixGeometry(7.5, 1.05, 4.5, 200), M.spring, g);
           c.shSpringTo = 6.2;
         } else {
           this._tag = 'shock';
