@@ -1024,10 +1024,9 @@
         const armGeom = EX(armShape, 3.5, 0.35, 8);
         armGeom.translate(0, 0, -2.2);
         this._mesh(armGeom, [M.carbon, M.carbonSide], c.arm);      // carbon lower arms (photos)
-        const cupG = EX(roundRect(-4.5, -4.2, 4.5, 4.2, 1.6), 6, 0.5, 6);
-        cupG.translate(0, 0, -3.2);
-        for (const du of [cs, -cs]) {   // square inner ball cups with the pivot ball inside
-          const cup = this._mesh(cupG, M.composite, c.arm); cup.position.set(du, 0, 0);
+        const cupG = new THREE.CylinderGeometry(4.9, 4.9, 6, 28); cupG.rotateX(Math.PI / 2);
+        for (const du of [cs, -cs]) {   // round ball-cup pucks pressed into the carbon arm (manual pg 10)
+          const cup = this._mesh(cupG, M.composite, c.arm); cup.position.set(du, 0, -0.2);
           const cap = this._mesh(new THREE.CylinderGeometry(2.6, 2.6, 0.8, 16), M.steel, c.arm); cap.rotation.x = Math.PI / 2; cap.position.set(du, 0, 3.2);
         }
         const ob = this._mesh(new THREE.CylinderGeometry(4.8, 4.8, 4.5, 24), M.composite, c.arm);
@@ -1049,10 +1048,30 @@
         c.hub = new THREE.Group(); g.add(c.hub);
         const loc = (p) => mtv(S0.Rb, sub(p, S0.W));
         const lO = loc(S0.O), lB = loc(S0.B);
-        const housing = this._mesh(new THREE.CylinderGeometry(8.6, 8.6, 9, 28), M.composite, c.hub); housing.position.set(0, -8.5, 0);
-        c.hub.add(beam([lO[0], lO[1] + 2, lO[2] + 3], [0, -8, -5], 7, 5, M.composite, [1, 0, 0]));
-        c.hub.add(beam([0, -8, 5], [lB[0], lB[1] + 1, lB[2] - 3], 6, 4.5, M.composite, [1, 0, 0]));
-        const bearing = this._mesh(new THREE.CylinderGeometry(6.2, 6.2, 9.4, 24, 1, true), M.bronze, c.hub); bearing.position.set(0, -8.5, 0);
+        // upright (manual front view of the corner, pg 22): flat outer face just inboard of the wheel's centre
+        // plane, round bearing housing, body down to the lower ball boss and a neck sloping inward to the
+        // upper ball. Profile in the hub's (y, z) plane, 9 mm thick fore-aft, anchored to the solver's balls.
+        {
+          const yo = -0.8, yi = Math.min(-13.5, lO[1] + 3.5);
+          const up = new THREE.Shape();
+          up.moveTo(yo, lO[2] + 5.5);
+          up.lineTo(yo, 9.5);
+          up.quadraticCurveTo(yo, 13.5, yo - 3, 14.5);
+          up.lineTo(lB[1] + 3.2, lB[2] - 1.5);
+          up.quadraticCurveTo(lB[1] + 1, lB[2] + 1.5, lB[1] - 2.2, lB[2] - 0.5);
+          up.lineTo(yi - 1.2, lB[2] - 9);
+          up.lineTo(yi, 2);
+          up.lineTo(yi + 0.5, lO[2] + 2.5);
+          up.quadraticCurveTo(lO[1] - 1.5, lO[2] - 0.5, lO[1] + 2.5, lO[2] - 1.5);
+          up.quadraticCurveTo(yo - 2, lO[2] + 1, yo, lO[2] + 5.5);
+          up.holes = [circlePath(-7.2, 0, 6.2)];
+          const ug = EX(up, 9, 0.8, 16);
+          ug.applyMatrix4(new THREE.Matrix4().set(0, 0, 1, -4.5, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1));
+          this._mesh(ug, M.composite, c.hub);
+          const housing = this._mesh(new THREE.CylinderGeometry(9.2, 9.2, Math.abs(yi - yo) - 1, 32), M.composite, c.hub); housing.position.set(0, (yo + yi) / 2, 0);
+          const bearing = this._mesh(new THREE.CylinderGeometry(6.2, 6.2, Math.abs(yi - yo), 24, 1, true), M.bronze, c.hub); bearing.position.set(0, (yo + yi) / 2, 0);
+          const bore = this._mesh(new THREE.CylinderGeometry(5.6, 5.6, 0.6, 24), M.screwBlack, c.hub); bore.position.set(0, yo + 0.1, 0);
+        }
         for (const p of [lO, lB]) {
           const boss = this._mesh(new THREE.CylinderGeometry(4.2, 4.2, 5, 18), M.composite, c.hub); boss.position.set(p[0], p[1], p[2]);
           const bl = this._mesh(new THREE.SphereGeometry(2.45, 16, 12), M.steel, c.hub); bl.position.set(p[0], p[1], p[2]);
@@ -1097,7 +1116,7 @@
           const half = Math.abs(towers[1] - towers[0]) / 2;
           c.upperFrame = new THREE.Group(); g.add(c.upperFrame);
           const F2 = c.upperFrame, V3 = (x, y, z) => new THREE.Vector3(x, y, z || 0);
-          const sec = roundRect(-2.6, -2.1, 2.6, 2.1, 1.3);
+          const sec = roundRect(-2.0, -1.6, 2.0, 1.6, 1.0);
           const legAlong = (pts) => {
             const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
             return this._mesh(new THREE.ExtrudeGeometry(sec, { steps: 28, bevelEnabled: false, extrudePath: curve }), M.composite, F2);
@@ -1110,17 +1129,23 @@
             const cup = this._mesh(new THREE.CylinderGeometry(3.1, 3.1, 3.2, 16), M.pom, F2); cup.rotation.x = Math.PI / 2; cup.position.set(0, yy, -3.8);
           }
           const boss = this._mesh(new THREE.BoxGeometry(9.6, 7.6, 7), M.composite, F2); boss.position.set(25.8, 0, 0.6);
-          const stop = this._mesh(new THREE.CylinderGeometry(1.2, 1.2, 16, 10), M.steel, F2); stop.rotation.x = Math.PI / 2; stop.position.set(28.5, 0, 9);
-          const sh = this._mesh(new THREE.CylinderGeometry(2.6, 2.6, 1.8, 16), M.screwBlack, F2); sh.rotation.x = Math.PI / 2; sh.position.set(28.5, 0, 17.6);
           c.upperRod = this._mesh(unitCyl(1.5, 10), M.steel, g);                          // adjuster thread
           c.upperCup = new THREE.Group(); g.add(c.upperCup);                              // outer ball cup on the hub ball
-          const oc = this._mesh(new THREE.CylinderGeometry(3.6, 3.6, 6.2, 18), M.pom, c.upperCup); oc.rotation.x = Math.PI / 2;
-          const sk = this._mesh(new THREE.CylinderGeometry(2.7, 2.7, 6, 14), M.pom, c.upperCup); sk.rotation.z = Math.PI / 2; sk.position.set(-5.5, 0, 0);
+          // tall upper ball cup (3020/3021) with the up-stop screw in its top (photos, pg 20)
+          const oc = this._mesh(new THREE.CylinderGeometry(4.1, 4.1, 12.5, 20), M.pom, c.upperCup); oc.rotation.x = Math.PI / 2; oc.position.set(0, 0, 2.6);
+          const sk = this._mesh(new THREE.CylinderGeometry(2.7, 2.7, 6, 14), M.pom, c.upperCup); sk.rotation.z = Math.PI / 2; sk.position.set(-5.5, 0, 1.5);
+          const stop = this._mesh(new THREE.CylinderGeometry(1.2, 1.2, 15, 10), M.steel, c.upperCup); stop.rotation.x = Math.PI / 2; stop.position.set(0, 0, 13.5);
+          const sh = this._mesh(new THREE.CylinderGeometry(2.6, 2.6, 1.8, 16), M.screwBlack, c.upperCup); sh.rotation.x = Math.PI / 2; sh.position.set(0, 0, 21.6);
         }
         const link = (r, mat) => this._mesh(unitCyl(r, 10), mat, g);
         this._tag = 'drive';
         c.drive = link(1.7, M.screwBlack);
         c.driveCupIn = this._mesh(new THREE.SphereGeometry(4.2, 14, 10), M.alu, g);
+        // universal joint at the hub: bronze cup, yoke and cross pin (photos, manual front view of the corner)
+        c.ujoint = new THREE.Group(); g.add(c.ujoint);
+        const ucup = this._mesh(new THREE.CylinderGeometry(4.6, 4.6, 6, 20), M.bronze, c.ujoint); ucup.position.y = -3;
+        const yoke = this._mesh(new THREE.BoxGeometry(6.4, 4.5, 3.2), M.steel, c.ujoint); yoke.position.y = 1.6;
+        const xpin = this._mesh(new THREE.CylinderGeometry(0.9, 0.9, 9, 10), M.steel, c.ujoint); xpin.rotation.z = Math.PI / 2; xpin.position.y = 1.6;
         if (H.rocker) {
           this._tag = 'push';
           c.push = link(1.25, M.screwBlack);
@@ -1189,8 +1214,21 @@
       // steering rack plate and bellcranks (moved every frame)
       this._dispose(this.rackGroup);
       this.rackGroup = new THREE.Group(); this.sprung.add(this.rackGroup);
-      this.rackPlate = this._mesh(new THREE.BoxGeometry(1, 1, 1), M.aluLight, this.rackGroup);
-      this.bellcranks = [0, 1].map(() => this._mesh(new THREE.BoxGeometry(1, 1, 1), M.alu, this.rackGroup));
+      // steering rack (manual step 8.6): bar carrying the steering-link balls, pinned to two slotted bellcrank
+      // arms (2020A) that swing on bearings about posts; parallelogram, so the bar translates
+      const Fr = model.front, rB = Fr.Hw.bellcrank || 15, yP = Fr.steered ? Math.abs(Fr.plateBall(0)[1]) : 19;
+      const bar = stadium([0, -yP], 4.6, [0, yP], 4.6);
+      bar.holes = [circlePath(0, 0, 1.6), circlePath(0, -yP, 1.6), circlePath(0, yP, 1.6), slotPath(-1.2, -yP + 6, 1.2, -4), slotPath(-1.2, 4, 1.2, yP - 6)];
+      this.rackPlate = this._mesh(plateGeom(bar, 2.6, -2.6, 0.25, 12), M.alu, this.rackGroup);
+      const arm = stadium([0, 0], 5.4, [-rB, 0], 3.8);
+      arm.holes = [circlePath(0, 0, 2.5), circlePath(-rB, 0, 1.4), slotPath(-rB + 4.8, -1.4, -4.8, 1.4)];
+      this.bellcranks = [0, 1].map(() => {
+        const gArm = new THREE.Group(); this.rackGroup.add(gArm);
+        this._mesh(plateGeom(arm, 3, -6, 0.3, 12), M.alu, gArm);
+        const brg = this._mesh(new THREE.CylinderGeometry(4.2, 4.2, 3.2, 20), M.screwBlack, gArm); brg.rotation.x = Math.PI / 2; brg.position.set(0, 0, -4.4);
+        return gArm;
+      });
+      this.servoBall = this._mesh(new THREE.SphereGeometry(2.15, 14, 10), M.steel, this.rackGroup);
       this.rackBalls = [0, 1].map(() => this._mesh(new THREE.SphereGeometry(2.15, 14, 10), M.steel, this.rackGroup));
       this.servoHorn = this._mesh(new THREE.BoxGeometry(1, 1, 1), M.orange, this.rackGroup);
       this.servoLink = this._mesh(unitCyl(1.2, 10), M.titanium, this.rackGroup);
@@ -1245,7 +1283,10 @@
         }
         // driveshaft from the diff outdrive to the wheel centre
         const dc = this.diffCentre[C.axle], od = [dc[0], left ? 19 : -19, dc[2]], W = mm(st.W);
-        placeBetween(c.drive, od, add(W, mul(mm(st.s), -6)));
+        const uj = add(W, mul(mm(st.s), -16.5));
+        placeBetween(c.drive, od, uj);
+        c.ujoint.position.set(uj[0], uj[1], uj[2]);
+        c.ujoint.quaternion.setFromUnitVectors(UPY, V(norm(sub(W, uj))));
         c.driveCupIn.position.set(...od);
         if (st.rocker) {
           const rk = st.rocker;
@@ -1285,16 +1326,17 @@
       const F = model.front;
       if (!F.steered || !F.Hw.bellcrank) return;
       const pb0 = F.plateBall(0), pbL = F.plateBall(p), pbR = mir(F.plateBall(-p));
-      this.rackPost.forEach((post, k) => placeBetween(post, [pb0[0] + F.Hw.bellcrank, k ? -13 : 13, this.plateT], [pb0[0] + F.Hw.bellcrank, k ? -13 : 13, pb0[2] - 2]));
+      const rB = F.Hw.bellcrank, yP = Math.abs(pb0[1]), zb = pb0[2] - 2.2;
+      this.rackPost.forEach((post, k) => placeBetween(post, [pb0[0] + rB, k ? -yP : yP, this.plateT], [pb0[0] + rB, k ? -yP : yP, zb - 6]));
       const mid = mul(add(pbL, pbR), 0.5);
-      this.rackPlate.position.set(mid[0], mid[1], mid[2] - 2.5);
-      this.rackPlate.scale.set(8, Math.abs(pbL[1] - pbR[1]) + 6, 3);
+      this.rackPlate.position.set(mid[0], mid[1], zb);
       this.rackBalls[0].position.set(...pbL); this.rackBalls[1].position.set(...pbR);
-      [1, -1].forEach((sg, k) => {
-        const post = [pb0[0] + F.Hw.bellcrank, sg * 13, mid[2] - 2.5];
-        const end = [pbL[0], sg * 13 + (pbL[1] - pb0[1]), mid[2] - 2.5];
-        placeBetween(this.bellcranks[k], post, end);
-        this.bellcranks[k].scale.x = 6; this.bellcranks[k].scale.z = 2.5;
+      this.servoBall.position.set(mid[0], mid[1], zb + 2.2);
+      [[1, pbL], [-1, pbR]].forEach(([sg, ball], k) => {
+        const piv = [pb0[0] + rB, sg * yP, zb];
+        const g2 = this.bellcranks[k];
+        g2.position.set(piv[0], piv[1], zb);
+        g2.rotation.set(0, 0, Math.atan2(ball[1] - piv[1], ball[0] - piv[0]) - Math.PI);
       });
       const hornC = [-74, 20, this.plateT + 21];
       const ang = (pbL[1] - pb0[1]) / 9;
