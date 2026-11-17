@@ -194,43 +194,49 @@
     front: {
       innerY: 17, armLen: 52.5, armU: 12.5,   // outer ball 12.5 mm forward of the pivot centre
       cupSpan: 23,                            // distance between the two inner ball cups
-      upperOnKingpin: true, upperInX: 0,      // upper wishbone: inner balls on both bulkhead towers (axis through x0)
+      upperOnKingpin: true, upperInX: 12,     // upper wishbone: inner balls at axle -12.5 / +11.5 (manual top view); midpoint = x0 + 12
       kpLow: [0, 0, 0], kpLen: 36,            // lower ball to upper ball (both arm ends ~41-42 mm up in the front view)
       wheel: [0, 14.05, 20.5],                // wheel centre from the lower ball; y sets the 190 mm width
-      ballZ: 9,
-      arbArm: 13.5, arbArmU: 7.7, arbArmZ: -3, arbLever: 14, arbSpan: 60,
-      bellcrank: 15, plateX: -14, plateZ: 14.55, // rack ball height: ~zero bump steer with the kit 0.5 mm spacers
+      ballZ: 13,           // steering ball on a long stud: the arm passes over the pushrod's lower cup at full lock
+      arbArm: 13.5, arbArmU: 7.7, arbArmZ: -2.2, arbLever: 14, arbSpan: 60,
+      bellcrank: 15, plateX: -16.6, plateZ: 18.88, // rack ball height: ~zero bump steer with the kit 0.5 mm spacers; x: ~17 deg outside lock
       kpi: 10,
       // Rocker on the outer face of the bulkhead (manual step 8, photos), axis fore-aft, pivot level
       // with the axle. The shock's top eye slides into the rocker's lower section; its lower ball cup
       // sits on the 2112 bulkhead mount, whose post rises through the lower-arm window. In plan the
-      // shock runs diagonally from the rocker forward of the bulkhead back to that post (bottom view).
+      // shock runs diagonally from the rocker forward of the bulkhead back to that post (bottom view:
+      // lower end at axle + 6.7, 41 mm out). The pushrod's ball stud stands off the rocker's outer face
+      // (close-up photos), so the rod clears both the rocker and the spring below it.
       rocker: {
-        dx: 23.5, y: 11.5, z: 27.8,          // pivot on the bulkhead nose's front face (manual side view of the bulkhead)
-        holeDir: [0, 0.6, 0.8], holes: { low: 7.5, mid: 9.0, high: 10.5 },     // long front rocker
-        shockArm: [0, -1.5, -13.5],          // shock top eye relative to the pivot
-        mountX: 5, mountY: 43.5, mountZ: 16, // shock lower ball on the 2112 post
-        ball: [6.4, 38.5, 3],                // pushrod ball on the arm (u, v, w)
-        pushrod: 49.53,                      // front pushrod: rocker at its design angle at the kit ride height
+        dx: 36, y: 11.5, z: 27.8,            // pivot on the bulkhead nose's front face: axle + 23.5 (x0 is the arm pivot centre, axle - 12.5)
+        holeDir: [0, 0.292, 0.956], holes: { low: 7.5, mid: 9.0, high: 10.5 }, // long front rocker: holes 17 deg out of vertical at rest (photos)
+        pushX: 7.5,                          // pushrod ball on a long-neck stud off the rocker's outer face (away from the axle)
+        shockArm: [0, -2.34, -13.3],         // shock top eye relative to the pivot: 10 deg inboard of straight down (photos)
+        shockMin: 30.5,                      // eye-to-ball length with the shock bottomed (body end on the retainer)
+        mountX: 19.2, mountY: 41.7, mountZ: 9, // shock lower ball on the 2112 mount, just ahead of the lower arm (bottom view)
+        ball: [6.4, 36.8, 4],                // pushrod ball on the arm (u, v, w): axle - 6.1 (bottom view), on a 4 mm stud
+        pushrod: 59.95,                      // front pushrod: rocker at its design angle at the kit ride height
       },
     },
     rear: {
       innerY: 17, armLen: 52.5, armU: -12.5, cupSpan: 23,
-      upperOnKingpin: true, upperInX: 0,
+      upperOnKingpin: true, upperInX: -12,
       kpLow: [0, 0, 0], kpLen: 36,
       wheel: [0, 14.22, 20.5],
       toeLink: true,
-      steerArm: [-12, -6, 18],               // toe-link ball on the hub, level with the inner ball (rear photo: links at axle height)
-      toeLinkIn: [-16, 22, 24.8],             // toe-link inner ball: mild toe-in in bump
-      arbArm: 13.5, arbArmU: -7.7, arbArmZ: -3, arbLever: 14, arbSpan: 60,
+      steerArm: [-8, -6, 18],               // toe-link ball on the hub, level with the inner ball (rear photo: links at axle height)
+      toeLinkIn: [-20.5, 22, 24.8],         // toe-link inner ball 8 mm behind the axle at axle height, parallel to the driveshaft
+      arbArm: 13.5, arbArmU: -7.7, arbArmZ: -2.2, arbLever: 14, arbSpan: 60,
       kpi: 10,
       rocker: {
-        dx: -23.5, y: 11.5, z: 27.8,
-        holeDir: [0, 0.6, 0.8], holes: { low: 6.0, mid: 7.5, high: 9.0 },      // short rear rocker
-        shockArm: [0, -1.5, -13.5],
-        mountX: -5, mountY: 43.5, mountZ: 16,
-        ball: [-6.4, 38.5, 3],
-        pushrod: 49.60,                      // rear pushrod
+        dx: -36, y: 11.5, z: 27.8,
+        holeDir: [0, 0.292, 0.956], holes: { low: 6.0, mid: 7.5, high: 9.0 },  // short rear rocker
+        pushX: -7.5,
+        shockArm: [0, -2.34, -13.3],
+        shockMin: 30.5,
+        mountX: -19.2, mountY: 41.7, mountZ: 9,
+        ball: [-6.4, 36.8, 4],
+        pushrod: 59.56,                      // rear pushrod
       },
     },
     chassis: { halfWidth: 40.3, front: 24, rear: 22, thick: 2.2 },
@@ -267,7 +273,7 @@
     'front.caster':      { v: 4.0,  min: 0.0,  max: 8.0,  step: 0.5,  unit: '°' },
     'front.kpi':         { v: 0.0,  min: 0.0,  max: 10.0, step: 0.5,  unit: '°' },
     'front.wheelSpacer': { v: 0.0,  min: -1.0, max: 2.0,  step: 0.25, unit: 'mm' },
-    'front.spring':      { v: 0.50, min: 0.25, max: 1.20, step: 0.01, unit: 'N/mm' },
+    'front.spring':      { v: 0.50, min: 0.30, max: 1.20, step: 0.01, unit: 'N/mm' },
     'front.shockArm':    { v: 40,   min: 32,   max: 46,   step: 0.5,  unit: 'mm' },
     'front.shockTowerY': { v: 36,   min: 26,   max: 46,   step: 0.5,  unit: 'mm' },
     'front.swayBar':     { v: 1.2,  min: 0,    max: 1.8,  step: 0.1,  unit: 'mm' },
@@ -291,7 +297,7 @@
     'rear.caster':      { v: -2.5, min: -6.0, max: 3.0,  step: 0.5,  unit: '°' },
     'rear.ballSpacer':  { v: 0.5,  min: 0,    max: 4,    step: 0.5,  unit: 'mm' },
     'rear.wheelSpacer': { v: 0.0,  min: -1.0, max: 2.0,  step: 0.25, unit: 'mm' },
-    'rear.spring':      { v: 0.45, min: 0.25, max: 1.20, step: 0.01, unit: 'N/mm' },
+    'rear.spring':      { v: 0.45, min: 0.30, max: 1.20, step: 0.01, unit: 'N/mm' },
     'rear.shockArm':    { v: 40,   min: 32,   max: 46,   step: 0.5,  unit: 'mm' },
     'rear.shockTowerY': { v: 36,   min: 26,   max: 46,   step: 0.5,  unit: 'mm' },
     'rear.swayBar':     { v: 1.0,  min: 0,    max: 1.8,  step: 0.1,  unit: 'mm' },
@@ -310,13 +316,13 @@
       setup: {
         car: { mass: 1380, frontPct: 49, cgHeight: 21, wheelbase: 257, tireDia: 64, tireWidth: 24, tireRate: 10, frontDiff: 'spool', model: 'sp2', chassis: 'carbon' },
         front: {
-          rideHeight: 5.0, camber: -1.5, toe: 0.0, droop: 3.0, linkInZ: 38.0, linkInY: 10.0, linkOutSpacer: 1.0, pivotZ: 7.0,
-          kickup: 0.0, caster: 4.0, kpi: 10.0, wheelSpacer: 0.0, spring: 0.41, swayBar: 1.1, rocker: 'low',
+          rideHeight: 5.0, camber: -1.5, toe: 0.0, droop: 3.0, linkInZ: 41.0, linkInY: 19.5, linkOutSpacer: 1.0, pivotZ: 7.0,
+          kickup: 0.0, caster: 4.0, kpi: 10.0, wheelSpacer: 0.0, spring: 0.39, swayBar: 1.1, rocker: 'low',
           ackInset: 8.0, armLength: 12.5, plateY: 19.0, plateDX: 0.0, ballSpacer: 0.5, plateSpacer: 0.5, lock: 27,
         },
         rear: {
-          rideHeight: 5.0, camber: -2.0, toe: 2.0, droop: 4.0, linkInZ: 38.0, linkInY: 10.0, linkOutSpacer: 1.0, pivotZ: 7.5,
-          antiSquat: 2.0, caster: -2.5, ballSpacer: 0.5, wheelSpacer: 0.0, spring: 0.44, swayBar: 1.1, rocker: 'low',
+          rideHeight: 5.0, camber: -2.0, toe: 2.0, droop: 4.0, linkInZ: 41.0, linkInY: 19.5, linkOutSpacer: 1.0, pivotZ: 7.5,
+          antiSquat: 2.0, caster: -2.5, ballSpacer: 0.5, wheelSpacer: 0.0, spring: 0.41, swayBar: 1.1, rocker: 'low',
         },
       },
       src: {
@@ -346,8 +352,8 @@
         'front.rocker': ['kit', 'Kit: pushrod in the lowest rocker hole (stiffest). The middle and top holes are softer.'],
         'rear.rocker': ['kit', 'Kit: pushrod in the lowest rocker hole (stiffest). The middle and top holes are softer.'],
         'car.chassis': ['kit', 'Kits come with a 2.2 mm carbon, 1.5 mm aluminium or 1.2 mm spring-steel chassis.'],
-        'front.linkInZ': ['est', 'From the manual’s bulkhead drawings: the upper wishbone’s inner balls sit on the bulkhead towers, about 38 mm above the chassis.'],
-        'rear.linkInZ': ['est', 'From the manual’s bulkhead drawings: the upper wishbone’s inner balls sit on the bulkhead towers, about 38 mm above the chassis.'],
+        'front.linkInZ': ['est', 'From the manual’s bulkhead drawings: the upper wishbone’s inner balls sit on the bulkhead towers, about 41 mm above the chassis (kit), 19.5 mm out.'],
+        'rear.linkInZ': ['est', 'From the manual’s bulkhead drawings: the upper wishbone’s inner balls sit on the bulkhead towers, about 41 mm above the chassis (kit), 19.5 mm out.'],
         'front.kpi': ['est', 'Read off the manual’s front-view drawing (about 10°).'],
       },
       info: [
@@ -439,7 +445,8 @@
     // pushrod + rocker (SP2) or a plain strut from the arm to the tower (generic)
     const RK = H.rocker ? {
       pivot: [x0 + H.rocker.dx, H.rocker.y, H.rocker.z],
-      push0: mul(norm(H.rocker.holeDir), H.rocker.holes[A.rocker] || H.rocker.holes.low),
+      // pushrod ball on a stud in the chosen hole, standing off the rocker face toward the axle
+      push0: add([H.rocker.pushX || 0, 0, 0], mul(norm(H.rocker.holeDir), H.rocker.holes[A.rocker] || H.rocker.holes.low)),
       shock0: H.rocker.shockArm.slice(),
       ball: H.rocker.ball.slice(),
       Lp: H.rocker.pushrod,
@@ -772,6 +779,9 @@
     let iLo = i0, iHi = i0;
     while (iLo - 1 >= 0 && rows[iLo - 1]) iLo--;
     while (iHi + 1 < n && rows[iHi + 1]) iHi++;
+    // bump limit: the shock bottoms (body end on the spring retainer) before the linkage runs out
+    const shMin = C.Hw.rocker && C.Hw.rocker.shockMin;
+    if (shMin) while (iHi > i0 + 4 && rows[iHi].shockLen < shMin) iHi--;
     // spring force at the wheel: F_spring(shock length) * motion ratio
     const r0 = rows[i0];
     const Fsp0 = sprungLoad / r0.mr;  // spring force at static

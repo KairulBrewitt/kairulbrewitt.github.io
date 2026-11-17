@@ -41,17 +41,21 @@ How the drawings are used:
 
 What is modelled from them:
 
-- Chassis plate with countersunk screws; 9.8 mm top-deck spine with S-curved
-  forks to the bulkheads; bulkheads with rear ear, towers, nose, claw, toothed
-  diff-height eccentric and insert; motor mount; layshaft over the plate's
-  spur windows with the spur on the right; 38 T pulleys and belts.
+- Chassis plate with countersunk screws; two top decks that slope with the
+  belts and fork around the pulleys; bulkheads with rear ear, towers, nose,
+  toothed diff-height eccentric and insert; left and right upper bulkheads
+  carrying the upper-arm balls; motor mount; layshaft over the plate's spur
+  windows with the spur on the right; 38 T pulleys and belts.
 - Carbon lower arms with ball-cup pucks; triangular upper wishbones on the
-  bulkhead towers with the threaded camber adjuster to a tall upper ball cup
+  upper bulkheads with the threaded camber adjuster to a tall upper ball cup
   carrying the up-stop screw; uprights with bearing housing and universal
-  joint; bronze dog-bone rockers on the bulkhead noses; pushrods; coaxial
-  shocks to the 2112 posts; low anti-roll bars in hook holders; steering rack
-  (slotted bellcrank arms, translating bar); servo on the floating mount; rear
-  toe links.
+  joint; bronze rockers on the bulkhead noses, shaped from the close-up photos
+  (pushrod holes 17° out of vertical, shock eye 10° in), with the pushrod's
+  ball cup on a stud off the outer face; coaxial shocks with 12.5 mm XS springs
+  lying back to their lower balls just ahead of the lower arms (bottom view);
+  low anti-roll bars in hook holders; steering rack (slotted bellcrank arms,
+  translating bar); servo on the floating mount; rear toe links. Every ball
+  sits on a stud with a neck, so its rod-end cup clears the part it is on.
 - Oval foam bumper with carbon brace and body posts; rear body bars; battery
   holders. Black anodised aluminium and carbon with bronze accents.
 
@@ -71,11 +75,25 @@ over the wheels.
 - Chassis plate (carbon, aluminium, spring steel) and rocker hole are settings.
 - Where WebGL is unavailable the app falls back to the SVG car.
 
+**No part passes through another.** Every pair of separate parts is checked
+triangle by triangle (three-mesh-bvh) at ten poses: ride height, full bump (to
+where the shock bottoms), full droop, full lock each way, bump and droop at
+full lock each way, and hard cornering. Faces resting flush on each other are
+allowed; nothing else is. Ball joints are checked as well: a ball may touch only
+its own cup and stud, a pin only its own bore. The check reports no
+interference. Getting there moved some hidden hardpoints by a few millimetres
+(below); the physics uses the same positions as the model.
+
 Not from factory CAD: the manual's drawings are about 2-6 px per mm, so
 outlines are accurate to roughly half a millimetre on large parts. Where a
 drawing and the photos disagree with a physical constraint (the deck must clear
-the layshaft belt), the constraint wins. Electronics, wheels and tyres are
-generic, as they are not part of the kit.
+the layshaft belt), the constraint wins. Positions that no drawing shows were
+chosen so the parts clear each other through the full travel and lock: the
+shock's lower ball height (9 mm), the pushrod stud length, the steering-arm
+ball height (13 mm above the lower kingpin ball, on a long stud, so the arm
+passes over the pushrod's lower cup at full lock; the rack height and position
+were re-solved for zero bump steer and the kit's 27°/17° lock). Electronics,
+wheels and tyres are generic, as they are not part of the kit.
 
 ## Cars
 
@@ -118,7 +136,9 @@ values from a real car can replace the estimates there.
   through the two hub balls and caster is measured on the chassis. SP2 shocks
   are driven by a fixed-length pushrod from the lower arm to a rocker on the
   bulkhead; the rocker angle is solved in closed form, so the motion ratio
-  follows the chosen rocker hole (lowest = stiffest, as in the manual).
+  follows the chosen rocker hole (lowest = stiffest, as in the manual). The
+  rocker's shape gives a gently rising rate through the travel, and bump
+  travel ends where the shock bottoms (body on the spring retainer).
   Each constraint is solved in closed form (rotation about a known axis).
 - **Static setup like on the setup board:** for every geometry change the
   solver finds the arm angle for the ride height and the turnbuckle lengths for

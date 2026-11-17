@@ -221,7 +221,8 @@ test('RC Maker SP2 kit: reproduces the published kit numbers', () => {
   assert.equal(m.setup.car.frontDiff, 'spool');
   assert.ok(Math.abs(m.front.toeGain) < 0.02, 'front bump steer near zero with kit spacers');
   assert.ok(Math.abs(m.front.rcHeight) < 10 && m.rear.rcHeight >= m.front.rcHeight, 'roll centres near the ground, rear at least as high');
-  close(m.front.Lcl, 54, 3, 'upper arm ball-to-ball length, consistent with the manual’s ~57.5 mm overall arm');
+  // upper wishbone inner balls 19.5 mm out (manual top view) to the hub's upper ball
+  close(m.front.Lcl, 43, 3, 'upper arm inner-axis to hub-ball length from the manual’s top view');
 });
 
 test('RC Maker SP2: rear toe link sets toe and keeps its length through travel', () => {
